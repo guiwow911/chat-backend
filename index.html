@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>聊天室</title>
+    <style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
+body{background:#1a1a2e;color:#fff;height:100vh;display:flex;flex-direction:column;padding:16px;max-width:1200px;margin:0 auto}
+h1{text-align:center;margin-bottom:12px;font-size:24px}
+#msgbox{flex:1;background:#16213e;border-radius:10px;padding:14px;overflow-y:auto;margin-bottom:12px}
+.msg-self{display:flex;flex-direction:column;align-items:flex-end;margin:8px 0}
+.msg-other{display:flex;flex-direction:column;align-items:flex-start;margin:8px 0}
+.name{font-size:12px;color:#aaa;margin-bottom:2px}
+.text{background:#2b58d1;padding:8px 12px;border-radius:12px;max-width:70%}
+.msg-other .text{background:#353b54}
+.bottom-bar{display:flex;gap:8px}
+#username{width:140px;padding:10px;border-radius:8px;border:none;background:#27293d;color:#fff}
+#msginput{flex:1;padding:10px;border-radius:8px;border:none;background:#27293d;color:#fff}
+#sendbtn{padding:0 20px;border:none;border-radius:8px;background:#3478ff;color:white;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>🌐聊天室</h1>
+<div id="msgbox"></div>
+<div class="bottom-bar">
+    <input id="username" value="游客" placeholder="昵称">
+    <input id="msginput" placeholder="输入消息回车发送">
+    <button id="sendbtn">发送</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    const box = document.getElementById("msgbox");
+    const input = document.getElementById("msginput");
+    const btn = document.getElementById("sendbtn");
+    const nameInput = document.getElementById("username");
+
+    function addMessage(user,text){
+        const div = document.createElement("div");
+        div.className = user === nameInput.value ? "msg-self" : "msg-other";
+        div.innerHTML = `<div class="name">${user}</div><div class="text">${text}</div>`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    socket.on("history", arr=>{
+        box.innerHTML = "";
+        arr.forEach(item=>addMessage(item.user, item.text))
+    })
+
+    socket.on("chat", (d)=>{
+        addMessage(d.user, d.text)
+    })
+
+    function send(){
+        const username = nameInput.value.trim() || "游客";
+        const text = input.value.trim();
+        if(!text) return;
+        socket.emit("chat", {user:username, text:text});
+        input.value = "";
+    }
+    btn.onclick = send;
+    input.onkeydown = e=>{if(e.key==="Enter") send();}
+</script>
+</body>
+</html>
