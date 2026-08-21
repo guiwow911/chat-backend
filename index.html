@@ -33,6 +33,7 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
 #img-input{display:none}
 #pick-img{padding:0 12px;background:#444870}
 #sendbtn{padding:0 14px;background:#3478ff}
+#adminPanelBtn{padding:0 12px;background:#995522;display:none}
 
 /*管理员右键菜单*/
 .context-menu{position:fixed;background:#222840;border:1px solid #444;border-radius:8px;z-index:100;display:none}
@@ -44,6 +45,15 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
 #ime-panel{display:none;background:#222840;padding:8px;border-radius:10px;margin-top:6px}
 .ime-key{display:inline-block;padding:6px 10px;margin:2px;background:#383e68;border-radius:4px;cursor:pointer}
 .ime-key:hover{background:#4c5494}
+
+/*管理员后台弹窗*/
+.admin-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;display:none;align-items:center;justify-content:center}
+.admin-modal{background:#1f2440;width:94%;max-width:600px;border-radius:12px;padding:16px;max-height:85vh;overflow-y:auto}
+.admin-modal h3{margin-bottom:10px}
+.block{margin:14px 0}
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;background:#2c3152;margin:4px 0;border-radius:6px}
+.btn-small{padding:4px 10px;border-radius:4px;border:none;background:#dd4444;color:#fff}
+.btn-close{margin-top:10px;width:100%;padding:10px;background:#444870;border:none;border-radius:8px;color:white}
     </style>
 </head>
 <body>
@@ -58,7 +68,6 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
             <button class="btn-reg" id="btnReg">注册</button>
         </div>
         <div class="tip" id="loginTip"></div>
-        <div style="font-size:12px;color:#999;margin-top:8px">注册账号名为 admin 将自动成为管理员</div>
     </div>
 </div>
 
@@ -72,6 +81,7 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
         <button id="pick-img">图片</button>
         <button id="sendbtn">发送</button>
         <button id="openImeBtn">网页输入法</button>
+        <button id="adminPanelBtn">管理后台</button>
     </div>
     <div id="ime-panel">
         <div>拼音模拟输入(网页内置)</div>
@@ -84,6 +94,22 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
     <div data-val="300000">禁言5分钟</div>
     <div data-val="1800000">禁言30分钟</div>
     <div data-val="-1">永久禁言</div>
+</div>
+
+<!--管理员后台弹窗-->
+<div class="admin-backdrop" id="adminBackdrop">
+    <div class="admin-modal">
+        <h3>管理员后台</h3>
+        <div class="block">
+            <h4>全部用户列表</h4>
+            <div id="userListBox"></div>
+        </div>
+        <div class="block">
+            <h4>当前禁言列表</h4>
+            <div id="muteListBox"></div>
+        </div>
+        <button class="btn-close" id="closeAdminBtn">关闭</button>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -106,6 +132,11 @@ const adminBadge = document.getElementById("admin-badge");
 const openImeBtn = document.getElementById("openImeBtn");
 const imePanel = document.getElementById("ime-panel");
 const imeKeys = document.getElementById("ime-keys");
+const adminPanelBtn = document.getElementById("adminPanelBtn");
+const adminBackdrop = document.getElementById("adminBackdrop");
+const closeAdminBtn = document.getElementById("closeAdminBtn");
+const userListBox = document.getElementById("userListBox");
+const muteListBox = document.getElementById("muteListBox");
 
 let myName = null;
 let amIAdmin = false;
@@ -129,7 +160,6 @@ function renderMsg(item){
     }else{
         div.innerHTML += `<div class="text">${escapeHtml(item.text)}</div>`;
     }
-    //管理员右键
     if(amIAdmin && item.sender !== myName){
         div.oncontextmenu = function(e){
             e.preventDefault();
@@ -153,9 +183,7 @@ socket.on("history",arr=>{
 socket.on("chat",d=>renderMsg(d));
 socket.on("systemNotice",d=>renderMsg({type:"system",msg:d.msg}));
 
-//点击空白关闭右键菜单
 document.body.onclick=()=>ctxMenu.style.display="none";
-//执行禁言
 ctxMenu.querySelectorAll("div").forEach(el=>{
     el.onclick = async ()=>{
         const dur = Number(el.dataset.val);
@@ -186,7 +214,10 @@ async function doLogin(isReg){
     }
     myName = json.username || u;
     amIAdmin = !!json.isAdmin;
-    if(amIAdmin) adminBadge.style.display="inline";
+    if(amIAdmin){
+        adminBadge.style.display="inline";
+        adminPanelBtn.style.display="inline-block";
+    }
     loginModal.style.display="none";
     mainRoom.style.display="flex";
 }
@@ -218,7 +249,7 @@ imgInput.onchange = async function(){
     imgInput.value="";
 }
 
-//网页简易输入法（内置拼音按键面板）
+//网页简易输入法
 openImeBtn.onclick=()=>{
     imePanel.style.display = imePanel.style.display==="block"?"none":"block";
 }
@@ -231,6 +262,50 @@ imeKeys.querySelectorAll(".ime-key").forEach(kn=>{
         else msgInput.value += ch;
     }
 })
+
+//管理员后台
+adminPanelBtn.onclick = async ()=>{
+    const res = await fetch("/api/admin-data",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({adminName:myName})
+    })
+    const j = await res.json();
+    if(!j.ok) return;
+    //渲染用户列表
+    userListBox.innerHTML = j.userList.map(u=>{
+        return `<div class="item-row">
+            <span>${u.username} ${u.isAdmin?"(管理员)":""}</span>
+        </div>`
+    }).join("");
+    //渲染禁言列表 + 解除禁言按钮
+    muteListBox.innerHTML = "";
+    if(j.muteList.length===0){
+        muteListBox.innerHTML = `<div style="padding:6px;color:#aaa">暂无禁言用户</div>`;
+    }else{
+        j.muteList.forEach(m=>{
+            let expireText = m.expire === -1 ? "永久" : new Date(m.expire).toLocaleString();
+            const div = document.createElement("div");
+            div.className = "item-row";
+            div.innerHTML = `<span>${m.username}｜到期：${expireText}</span>
+            <button class="btn-small" data-user="${m.username}">解除禁言</button>`;
+            muteListBox.appendChild(div);
+        })
+        muteListBox.querySelectorAll(".btn-small").forEach(btn=>{
+            btn.onclick = async function(){
+                const target = this.dataset.user;
+                await fetch("/api/unmute",{
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body:JSON.stringify({adminName:myName,targetUser:target})
+                })
+                adminPanelBtn.click();//刷新后台
+            }
+        })
+    }
+    adminBackdrop.style.display="flex";
+}
+closeAdminBtn.onclick = ()=> adminBackdrop.style.display="none";
 </script>
 </body>
 </html>
