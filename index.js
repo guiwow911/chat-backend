@@ -31,6 +31,8 @@ function saveMessage(msg) {
 }
 
 app.use(express.static(__dirname));
+// 新增这一行，解决 Cannot GET /
+app.get('/', (req,res)=>res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
     console.log("用户已连接");
