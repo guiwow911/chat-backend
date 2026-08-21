@@ -14,7 +14,6 @@ const MSG_FILE = './messages.json';
 const MUTE_FILE = './mutes.json';
 const UPLOAD_DIR = './public/uploads';
 
-//初始化全部文件
 if (!fs.existsSync(USER_FILE)) fs.writeFileSync(USER_FILE, JSON.stringify([]));
 if (!fs.existsSync(MSG_FILE)) fs.writeFileSync(MSG_FILE, JSON.stringify([]));
 if (!fs.existsSync(MUTE_FILE)) fs.writeFileSync(MUTE_FILE, JSON.stringify([]));
@@ -30,7 +29,6 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage: storage });
 
-//用户
 function loadUsers() { return JSON.parse(fs.readFileSync(USER_FILE, 'utf8')); }
 function saveUser(u) {
     let arr = loadUsers();
@@ -38,22 +36,19 @@ function saveUser(u) {
     fs.writeFileSync(USER_FILE, JSON.stringify(arr));
 }
 
-//禁言管理
 function loadMutes(){ return JSON.parse(fs.readFileSync(MUTE_FILE,'utf8')); }
 function saveMutes(arr){ fs.writeFileSync(MUTE_FILE, JSON.stringify(arr)); }
-//检查是否被禁言
+
 function isMuted(username){
     const mutes = loadMutes();
     const item = mutes.find(x=>x.username===username);
     if(!item) return false;
-    if(item.expire === -1) return true; //永久禁言
+    if(item.expire === -1) return true;
     if(Date.now() < item.expire) return true;
-    //过期自动删除
     saveMutes(mutes.filter(x=>!(x.username===username && Date.now()>x.expire)));
     return false;
 }
 
-//消息
 function loadMessages() { return JSON.parse(fs.readFileSync(MSG_FILE, 'utf8')); }
 function saveMessage(msg) {
     let list = loadMessages();
@@ -90,7 +85,7 @@ app.post('/api/upload', upload.single('img'), (req,res)=>{
     res.json({ok:true,url:"/uploads/"+req.file.filename});
 })
 
-//管理员禁言接口
+//禁言
 app.post('/api/mute', (req,res)=>{
     const {adminName, targetUser, durationMs} = req.body;
     const users = loadUsers();
@@ -105,13 +100,36 @@ app.post('/api/mute', (req,res)=>{
     res.json({ok:true});
 })
 
+//解除禁言
+app.post('/api/unmute', (req,res)=>{
+    const {adminName, targetUser} = req.body;
+    const users = loadUsers();
+    const admin = users.find(u=>u.username===adminName && u.isAdmin);
+    if(!admin) return res.json({ok:false});
+    let mutes = loadMutes();
+    mutes = mutes.filter(x=>x.username!==targetUser);
+    saveMutes(mutes);
+    io.emit("systemNotice",{msg:`管理员 ${adminName} 解除了【${targetUser}】的禁言`});
+    res.json({ok:true});
+})
+
+//获取后台数据：用户列表、禁言列表
+app.post('/api/admin-data', (req,res)=>{
+    const {adminName} = req.body;
+    const users = loadUsers();
+    const admin = users.find(u=>u.username===adminName && u.isAdmin);
+    if(!admin) return res.json({ok:false});
+    const userList = loadUsers().map(i=>({username:i.username,isAdmin:i.isAdmin}));
+    const muteList = loadMutes();
+    res.json({ok:true,userList,muteList});
+})
+
 app.use(express.static(__dirname));
 app.use('/uploads',express.static(UPLOAD_DIR));
 app.get('/', (req,res)=>res.sendFile(__dirname + '/index.html'));
 
 io.on('connection', (socket) => {
     socket.emit('history', loadMessages());
-
     socket.on('chat', (data)=>{
         if(isMuted(data.sender)){
             socket.emit("systemNotice",{msg:"你已被禁言，无法发送消息"});
