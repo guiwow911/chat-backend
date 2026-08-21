@@ -6,7 +6,7 @@
     <title>聊天室</title>
     <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#1a1a2e;color:#fff;height:100vh;display:flex;flex-direction:column;padding:12px;max-width:1200px;margin:0 auto}
+body{background:#1a1a2e;color:#fff;height:100vh;display:flex;flex-direction:column;padding:12px;max-width:1300px;margin:0 auto}
 h1{text-align:center;margin-bottom:12px;font-size:22px}
 
 /*登录弹窗*/
@@ -20,7 +20,9 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
 .btn-reg{background:#27ae60}
 .tip{margin-top:10px;color:#ff8888;font-size:14px;text-align:center}
 
-#main-room{display:none;flex:1;flex-direction:column}
+#main-room{display:none;flex:1;gap:10px}
+.sidebar{width:260px;background:#16213e;border-radius:10px;padding:10px;overflow-y:auto}
+.chat-main{flex:1;display:flex;flex-direction:column}
 #msgbox{flex:1;background:#16213e;border-radius:10px;padding:12px;overflow-y:auto;margin-bottom:10px}
 .msg-self{display:flex;flex-direction:column;align-items:flex-end;margin:8px 0}
 .msg-other{display:flex;flex-direction:column;align-items:flex-start;margin:8px 0}
@@ -57,6 +59,17 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
 .btn-unban{background:#298844}
 .btn-mute{background:#d48822}
 .btn-close{margin-top:12px;width:100%;padding:10px;background:#444870;border:none;border-radius:8px;color:white}
+
+/*侧边栏好友群聊*/
+.sidebar-block{margin-bottom:14px}
+.sidebar-block h4{margin-bottom:6px;color:#ffdd99}
+.sidebar-item{padding:6px 8px;background:#272c4e;border-radius:6px;margin:4px 0;cursor:pointer;font-size:14px}
+.sidebar-item:hover{background:#343b66}
+.sidebar-item.active{background:#2b58d1}
+.sidebar input{width:100%;padding:7px;border-radius:6px;border:none;background:#272c4e;color:#fff;margin:4px 0}
+.sidebar button{width:100%;padding:7px;font-size:14px;background:#304488;border:none;border-radius:6px;color:#fff;margin:3px 0}
+.pop-small{position:fixed;z-index:150;background:#222840;padding:14px;border-radius:10px;width:90%;max-width:340px}
+.pop-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:140;display:none;align-items:center;justify-content:center}
     </style>
 </head>
 <body>
@@ -75,24 +88,51 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
 </div>
 
 <div id="main-room">
-    <h1>🌐聊天室 <span id="admin-badge" style="color:#ffdd44;display:none">【管理员】</span></h1>
-    <div id="msgbox"></div>
-
-    <div class="bottom-bar">
-        <input id="img-input" type="file" accept="image/*">
-        <input id="msginput" placeholder="输入消息">
-        <button id="pick-img">图片</button>
-        <button id="sendbtn">发送</button>
-        <button id="openImeBtn">网页输入法</button>
-        <button id="adminPanelBtn">管理后台</button>
+    <div class="sidebar">
+        <div class="sidebar-block">
+            <h4>🌐全局公聊</h4>
+            <div class="sidebar-item active" data-type="global">全局聊天室</div>
+        </div>
+        <div class="sidebar-block">
+            <h4>👥好友</h4>
+            <input id="addFriendInput" placeholder="输入用户名添加好友">
+            <button id="btnAddFriend">发送好友申请</button>
+            <div id="friendApplyBox"></div>
+            <div id="friendListBox"></div>
+        </div>
+        <div class="sidebar-block">
+            <h4>🏘️群聊</h4>
+            <button id="btnCreateGroup">创建新群聊</button>
+            <input id="joinGroupCodeInput" placeholder="输入群码加入群聊">
+            <button id="btnJoinByCode">使用群码加入</button>
+            <div id="myGroupListBox"></div>
+        </div>
     </div>
-    <div id="ime-panel">
-        <div>拼音模拟输入(网页内置)</div>
-        <div id="ime-keys"></div>
+    <div class="chat-main">
+        <h1>🌐聊天室 <span id="admin-badge" style="color:#ffdd44;display:none">【管理员】</span></h1>
+        <div id="msgbox"></div>
+
+        <div class="bottom-bar">
+            <input id="img-input" type="file" accept="image/*">
+            <input id="msginput" placeholder="输入消息">
+            <button id="pick-img">图片</button>
+            <button id="sendbtn">发送</button>
+            <button id="openImeBtn">网页输入法</button>
+            <button id="adminPanelBtn">管理后台</button>
+        </div>
+        <div id="ime-panel">
+            <div>拼音模拟输入(网页内置)</div>
+            <div id="ime-keys"></div>
+        </div>
     </div>
 </div>
 
-<!--右键菜单仅保留禁言-->
+<!--弹窗层-->
+<div class="pop-backdrop" id="popBackdrop">
+    <div class="pop-small" id="popContent"></div>
+</div>
+
+<!--管理员右键菜单（仅保留禁言）-->
 <div class="context-menu" id="ctxMenu">
     <div data-val="300000">禁言5分钟</div>
     <div data-val="1800000">禁言30分钟</div>
@@ -146,9 +186,24 @@ const userListBox = document.getElementById("userListBox");
 const muteListBox = document.getElementById("muteListBox");
 const banListBox = document.getElementById("banListBox");
 
+//好友群聊dom
+const addFriendInput = document.getElementById("addFriendInput");
+const btnAddFriend = document.getElementById("btnAddFriend");
+const friendApplyBox = document.getElementById("friendApplyBox");
+const friendListBox = document.getElementById("friendListBox");
+const btnCreateGroup = document.getElementById("btnCreateGroup");
+const joinGroupCodeInput = document.getElementById("joinGroupCodeInput");
+const btnJoinByCode = document.getElementById("btnJoinByCode");
+const myGroupListBox = document.getElementById("myGroupListBox");
+const popBackdrop = document.getElementById("popBackdrop");
+const popContent = document.getElementById("popContent");
+
 let myName = null;
 let amIAdmin = false;
 let rightClickTargetUser = null;
+//聊天上下文 global / private:xxx / group:g_xxxx
+let currentChatType = "global";
+let currentChatTarget = null;
 
 //渲染消息
 function renderMsg(item){
@@ -191,6 +246,29 @@ socket.on("history",arr=>{
 socket.on("chat",d=>renderMsg(d));
 socket.on("systemNotice",d=>renderMsg({type:"system",msg:d.msg}));
 
+//私聊消息接收
+socket.on("private_in",(payload)=>{
+    if(currentChatType==="private" && currentChatTarget === payload.fromUser){
+        const div = document.createElement("div");
+        div.className = payload.self ? "msg-self":"msg-other";
+        div.innerHTML = `<div class="name">${payload.fromUser}</div><div class="text">${escapeHtml(payload.text)}</div>`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+})
+//群聊消息接收
+socket.on("group_in",(payload)=>{
+    if(currentChatType==="group" && currentChatTarget === payload.groupId){
+        const div = document.createElement("div");
+        div.className = payload.fromUser===myName?"msg-self":"msg-other";
+        div.innerHTML = `<div class="name">${payload.fromUser}</div><div class="text">${escapeHtml(payload.text)}</div>`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+})
+
+socket.on("friendNotify",()=>loadFriendAndGroup());
+
 document.body.onclick=()=>ctxMenu.style.display="none";
 ctxMenu.querySelectorAll("div").forEach(el=>{
     el.onclick = async ()=>{
@@ -222,12 +300,14 @@ async function doLogin(isReg){
     }
     myName = json.username || u;
     amIAdmin = !!json.isAdmin;
+    socket.emit("login_bind",myName);
     if(amIAdmin){
         adminBadge.style.display="inline";
         adminPanelBtn.style.display="inline-block";
     }
     loginModal.style.display="none";
     mainRoom.style.display="flex";
+    loadFriendAndGroup();
 }
 btnLogin.onclick=()=>doLogin(false);
 btnReg.onclick=()=>doLogin(true);
@@ -236,7 +316,13 @@ btnReg.onclick=()=>doLogin(true);
 function sendText(){
     const text = msgInput.value.trim();
     if(!text||!myName) return;
-    socket.emit("chat",{sender:myName, text:text});
+    if(currentChatType==="global"){
+        socket.emit("chat",{sender:myName, text:text});
+    }else if(currentChatType==="private"){
+        socket.emit("private_msg",{toUser:currentChatTarget,fromUser:myName,text:text});
+    }else if(currentChatType==="group"){
+        socket.emit("group_msg",{groupId:currentChatTarget,fromUser:myName,text:text});
+    }
     msgInput.value="";
 }
 sendBtn.onclick = sendText;
@@ -354,6 +440,73 @@ adminPanelBtn.onclick = async ()=>{
     adminBackdrop.style.display="flex";
 }
 closeAdminBtn.onclick = ()=> adminBackdrop.style.display="none";
-</script>
-</body>
-</html>
+
+// ==========好友&群聊逻辑==========
+async function loadFriendAndGroup(){
+    //加载好友
+    const fr = await fetch("/api/friend/list",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({username:myName})
+    })
+    const frj = await fr.json();
+    friendApplyBox.innerHTML="";
+    if(frj.applies.length>0){
+        frj.applies.forEach(app=>{
+            const d = document.createElement("div");
+            d.className="item-row";
+            d.innerHTML=`<span>申请：${app}</span><button class="btn-small btn-unban" data-app="${app}">同意</button>`;
+            friendApplyBox.appendChild(d);
+        })
+        friendApplyBox.querySelectorAll("button").forEach(b=>{
+            b.onclick=async function(){
+                const u = this.dataset.app;
+                await fetch("/api/friend/accept",{
+                    method:"POST",headers:{"Content-Type":"application/json"},
+                    body:JSON.stringify({userA:myName,userB:u})
+                })
+                loadFriendAndGroup();
+            }
+        })
+    }
+    friendListBox.innerHTML="";
+    frj.friends.forEach(fu=>{
+        const div = document.createElement("div");
+        div.className="sidebar-item";
+        div.innerText = fu;
+        div.onclick=()=>{
+            box.innerHTML="";
+            currentChatType="private";
+            currentChatTarget=fu;
+        }
+        friendListBox.appendChild(div);
+    })
+
+    //加载我的群
+    const gr = await fetch("/api/group/mine",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({username:myName})
+    })
+    const grj = await gr.json();
+    myGroupListBox.innerHTML="";
+    grj.groups.forEach(g=>{
+        const div = document.createElement("div");
+        div.className="sidebar-item";
+        div.innerText = `${g.groupName} [${g.groupCode}]`;
+        div.title=`群码：${g.groupCode}`;
+        div.onclick=()=>{
+            box.innerHTML="";
+            currentChatType="group";
+            currentChatTarget=g.groupId;
+        }
+        myGroupListBox.appendChild(div);
+    })
+}
+
+//添加好友
+btnAddFriend.onclick=async ()=>{
+    const t = addFriendInput.value.trim();
+    if(!t)return;
+    const res = await fetch("/api/friend/add",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({fromUser:myName,toUser:t})
+    })
