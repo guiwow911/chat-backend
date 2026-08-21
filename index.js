@@ -12,11 +12,13 @@ const io = new Server(server);
 const USER_FILE = './users.json';
 const MSG_FILE = './messages.json';
 const MUTE_FILE = './mutes.json';
+const BAN_FILE = './bans.json';
 const UPLOAD_DIR = './public/uploads';
 
 if (!fs.existsSync(USER_FILE)) fs.writeFileSync(USER_FILE, JSON.stringify([]));
 if (!fs.existsSync(MSG_FILE)) fs.writeFileSync(MSG_FILE, JSON.stringify([]));
 if (!fs.existsSync(MUTE_FILE)) fs.writeFileSync(MUTE_FILE, JSON.stringify([]));
+if (!fs.existsSync(BAN_FILE)) fs.writeFileSync(BAN_FILE, JSON.stringify([]));
 if (!fs.existsSync('./public')) fs.mkdirSync('./public');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
@@ -49,6 +51,13 @@ function isMuted(username){
     return false;
 }
 
+function loadBans(){ return JSON.parse(fs.readFileSync(BAN_FILE,'utf8')); }
+function saveBans(arr){ fs.writeFileSync(BAN_FILE, JSON.stringify(arr)); }
+function isBanned(username){
+    const bans = loadBans();
+    return bans.some(x=>x.username === username);
+}
+
 function loadMessages() { return JSON.parse(fs.readFileSync(MSG_FILE, 'utf8')); }
 function saveMessage(msg) {
     let list = loadMessages();
@@ -64,6 +73,7 @@ app.post('/api/register', (req,res)=>{
     const {username,password} = req.body;
     const users = loadUsers();
     if(!username||!password) return res.json({ok:false,msg:"用户名密码不能为空"});
+    if(isBanned(username)) return res.json({ok:false,msg:"该账号已被封禁，禁止注册"});
     if(users.find(x=>x.username===username)) return res.json({ok:false,msg:"用户名已存在"});
     const isAdmin = username.toLowerCase() === "admin";
     saveUser({username,password,isAdmin});
@@ -73,6 +83,7 @@ app.post('/api/register', (req,res)=>{
 //登录
 app.post('/api/login', (req,res)=>{
     const {username,password} = req.body;
+    if(isBanned(username)) return res.json({ok:false,msg:"账号已被封禁，无法登录"});
     const users = loadUsers();
     const u = users.find(x=>x.username===username && x.password===password);
     if(!u) return res.json({ok:false,msg:"账号密码错误"});
@@ -91,7 +102,7 @@ app.post('/api/mute', (req,res)=>{
     const users = loadUsers();
     const admin = users.find(u=>u.username===adminName && u.isAdmin);
     if(!admin) return res.json({ok:false,msg:"不是管理员"});
-    if(targetUser.toLowerCase()==="admin") return res.json({ok:false,msg:"不能禁言管理员"});
+    if(targetUser.toLowerCase()==="admin") return res.json({ok:false,msg:"不能操作管理员"});
     let mutes = loadMutes();
     mutes = mutes.filter(x=>x.username!==targetUser);
     mutes.push({username:targetUser,expire:durationMs});
@@ -113,7 +124,35 @@ app.post('/api/unmute', (req,res)=>{
     res.json({ok:true});
 })
 
-//获取后台数据：用户列表、禁言列表
+//永久封禁账号
+app.post('/api/ban', (req,res)=>{
+    const {adminName, targetUser} = req.body;
+    const users = loadUsers();
+    const admin = users.find(u=>u.username===adminName && u.isAdmin);
+    if(!admin) return res.json({ok:false});
+    if(targetUser.toLowerCase()==="admin") return res.json({ok:false,msg:"不能封禁管理员"});
+    let bans = loadBans();
+    bans = bans.filter(x=>x.username!==targetUser);
+    bans.push({username:targetUser,banTime:Date.now()});
+    saveBans(bans);
+    io.emit("systemNotice",{msg:`用户【${targetUser}】已被永久封禁`});
+    res.json({ok:true});
+})
+
+//解除封禁
+app.post('/api/unban', (req,res)=>{
+    const {adminName, targetUser} = req.body;
+    const users = loadUsers();
+    const admin = users.find(u=>u.username===adminName && u.isAdmin);
+    if(!admin) return res.json({ok:false});
+    let bans = loadBans();
+    bans = bans.filter(x=>x.username!==targetUser);
+    saveBans(bans);
+    io.emit("systemNotice",{msg:`管理员解除了【${targetUser}】账号封禁`});
+    res.json({ok:true});
+})
+
+//后台全部数据 用户/禁言/封禁列表
 app.post('/api/admin-data', (req,res)=>{
     const {adminName} = req.body;
     const users = loadUsers();
@@ -121,7 +160,8 @@ app.post('/api/admin-data', (req,res)=>{
     if(!admin) return res.json({ok:false});
     const userList = loadUsers().map(i=>({username:i.username,isAdmin:i.isAdmin}));
     const muteList = loadMutes();
-    res.json({ok:true,userList,muteList});
+    const banList = loadBans();
+    res.json({ok:true,userList,muteList,banList});
 })
 
 app.use(express.static(__dirname));
