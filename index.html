@@ -2,66 +2,152 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>聊天室</title>
     <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#1a1a2e;color:#fff;height:100vh;display:flex;flex-direction:column;padding:16px;max-width:1200px;margin:0 auto}
-h1{text-align:center;margin-bottom:12px;font-size:24px}
-#msgbox{flex:1;background:#16213e;border-radius:10px;padding:14px;overflow-y:auto;margin-bottom:12px}
+body{background:#1a1a2e;color:#fff;height:100vh;display:flex;flex-direction:column;padding:12px;max-width:1200px;margin:0 auto}
+h1{text-align:center;margin-bottom:12px;font-size:22px}
+
+/*登录弹窗*/
+.login-box{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:99}
+.login-card{background:#222840;padding:20px;border-radius:12px;width:92%;max-width:360px}
+.login-card h2{margin-bottom:16px;text-align:center;font-size:20px}
+.login-card input{width:100%;padding:11px;margin:7px 0;border:none;border-radius:8px;background:#2f3454;color:#fff;font-size:16px}
+.btn-row{display:flex;gap:10px;margin-top:12px}
+button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer}
+.btn-login{background:#3478ff}
+.btn-reg{background:#27ae60}
+.tip{margin-top:10px;color:#ff8888;font-size:14px;text-align:center}
+
+#main-room{display:none;flex:1;flex-direction:column}
+#msgbox{flex:1;background:#16213e;border-radius:10px;padding:12px;overflow-y:auto;margin-bottom:10px}
 .msg-self{display:flex;flex-direction:column;align-items:flex-end;margin:8px 0}
 .msg-other{display:flex;flex-direction:column;align-items:flex-start;margin:8px 0}
 .name{font-size:12px;color:#aaa;margin-bottom:2px}
-.text{background:#2b58d1;padding:8px 12px;border-radius:12px;max-width:70%}
+.text{background:#2b58d1;padding:9px 12px;border-radius:12px;max-width:82%}
 .msg-other .text{background:#353b54}
-.bottom-bar{display:flex;gap:8px}
-#username{width:140px;padding:10px;border-radius:8px;border:none;background:#27293d;color:#fff}
-#msginput{flex:1;padding:10px;border-radius:8px;border:none;background:#27293d;color:#fff}
-#sendbtn{padding:0 20px;border:none;border-radius:8px;background:#3478ff;color:white;cursor:pointer}
-</style>
+.msg-img{max-width:220px;border-radius:10px;margin:4px 0}
+.bottom-bar{display:flex;gap:6px;flex-wrap:wrap}
+#msginput{flex:1;min-width:140px;padding:10px;border-radius:8px;border:none;background:#27293d;color:#fff;font-size:16px}
+#img-input{display:none}
+#pick-img{padding:0 12px;background:#444870}
+#sendbtn{padding:0 14px;background:#3478ff}
+    </style>
 </head>
 <body>
-<h1>🌐聊天室</h1>
-<div id="msgbox"></div>
-<div class="bottom-bar">
-    <input id="username" value="游客" placeholder="昵称">
-    <input id="msginput" placeholder="输入消息回车发送">
-    <button id="sendbtn">发送</button>
+
+<div class="login-box" id="loginModal">
+    <div class="login-card">
+        <h2>登录 / 注册</h2>
+        <input id="inp-user" placeholder="用户名">
+        <input id="inp-pwd" type="password" placeholder="密码">
+        <div class="btn-row">
+            <button class="btn-login" id="btnLogin">登录</button>
+            <button class="btn-reg" id="btnReg">注册</button>
+        </div>
+        <div class="tip" id="loginTip"></div>
+    </div>
+</div>
+
+<div id="main-room">
+    <h1>🌐聊天室</h1>
+    <div id="msgbox"></div>
+    <div class="bottom-bar">
+        <input id="img-input" type="file" accept="image/*">
+        <input id="msginput" placeholder="输入消息">
+        <button id="pick-img">图片</button>
+        <button id="sendbtn">发送</button>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const socket = io();
-    const box = document.getElementById("msgbox");
-    const input = document.getElementById("msginput");
-    const btn = document.getElementById("sendbtn");
-    const nameInput = document.getElementById("username");
+const socket = io();
+const box = document.getElementById("msgbox");
+const loginModal = document.getElementById("loginModal");
+const mainRoom = document.getElementById("main-room");
+const inpUser = document.getElementById("inp-user");
+const inpPwd = document.getElementById("inp-pwd");
+const loginTip = document.getElementById("loginTip");
+const btnLogin = document.getElementById("btnLogin");
+const btnReg = document.getElementById("btnReg");
+const msgInput = document.getElementById("msginput");
+const sendBtn = document.getElementById("sendbtn");
+const pickImgBtn = document.getElementById("pick-img");
+const imgInput = document.getElementById("img-input");
 
-    function addMessage(user,text){
-        const div = document.createElement("div");
-        div.className = user === nameInput.value ? "msg-self" : "msg-other";
-        div.innerHTML = `<div class="name">${user}</div><div class="text">${text}</div>`;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
+let myName = null;
+
+//渲染消息
+function renderMsg(item){
+    const div = document.createElement("div");
+    div.className = item.sender === myName ? "msg-self" : "msg-other";
+    div.innerHTML = `<div class="name">${item.sender}</div>`;
+    if(item.img){
+        div.innerHTML += `<img class="msg-img" src="${item.img}">`;
+    }else{
+        div.innerHTML += `<div class="text">${escapeHtml(item.text)}</div>`;
     }
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+function escapeHtml(str){
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
 
-    socket.on("history", arr=>{
-        box.innerHTML = "";
-        arr.forEach(item=>addMessage(item.user, item.text))
+socket.on("history",arr=>{
+    box.innerHTML="";
+    arr.forEach(renderMsg);
+})
+socket.on("chat",d=>renderMsg(d));
+
+//登录
+async function doLogin(isReg){
+    loginTip.innerText="";
+    const u = inpUser.value.trim();
+    const p = inpPwd.value.trim();
+    const res = await fetch(isReg?"/api/register":"/api/login",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({username:u,password:p})
     })
-
-    socket.on("chat", (d)=>{
-        addMessage(d.user, d.text)
-    })
-
-    function send(){
-        const username = nameInput.value.trim() || "游客";
-        const text = input.value.trim();
-        if(!text) return;
-        socket.emit("chat", {user:username, text:text});
-        input.value = "";
+    const json = await res.json();
+    if(!json.ok){
+        loginTip.innerText = json.msg;
+        return;
     }
-    btn.onclick = send;
-    input.onkeydown = e=>{if(e.key==="Enter") send();}
+    myName = json.username || u;
+    loginModal.style.display="none";
+    mainRoom.style.display="flex";
+}
+btnLogin.onclick=()=>doLogin(false);
+btnReg.onclick=()=>doLogin(true);
+
+//发送文字
+function sendText(){
+    const text = msgInput.value.trim();
+    if(!text||!myName) return;
+    socket.emit("chat",{sender:myName, text:text});
+    msgInput.value="";
+}
+sendBtn.onclick = sendText;
+msgInput.onkeydown = e=>{if(e.key==="Enter") sendText()}
+
+//发送图片
+pickImgBtn.onclick=()=>imgInput.click();
+imgInput.onchange = async function(){
+    const file = this.files[0];
+    if(!file||!myName) return;
+    const fd = new FormData();
+    fd.append("img",file);
+    const res = await fetch("/api/upload",{method:"POST",body:fd});
+    const j = await res.json();
+    if(j.ok){
+        socket.emit("chat",{sender:myName, img:j.url});
+    }
+    imgInput.value="";
+}
 </script>
 </body>
 </html>
