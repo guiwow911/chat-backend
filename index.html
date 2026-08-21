@@ -28,11 +28,22 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
 .text{background:#2b58d1;padding:9px 12px;border-radius:12px;max-width:82%}
 .msg-other .text{background:#353b54}
 .msg-img{max-width:220px;border-radius:10px;margin:4px 0}
-.bottom-bar{display:flex;gap:6px;flex-wrap:wrap}
+.bottom-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 #msginput{flex:1;min-width:140px;padding:10px;border-radius:8px;border:none;background:#27293d;color:#fff;font-size:16px}
 #img-input{display:none}
 #pick-img{padding:0 12px;background:#444870}
 #sendbtn{padding:0 14px;background:#3478ff}
+
+/*管理员右键菜单*/
+.context-menu{position:fixed;background:#222840;border:1px solid #444;border-radius:8px;z-index:100;display:none}
+.context-menu div{padding:8px 14px;cursor:pointer}
+.context-menu div:hover{background:#343b66}
+.system-notice{text-align:center;color:#ffdd77;font-size:13px;margin:6px 0}
+
+/*网页内置输入法UI*/
+#ime-panel{display:none;background:#222840;padding:8px;border-radius:10px;margin-top:6px}
+.ime-key{display:inline-block;padding:6px 10px;margin:2px;background:#383e68;border-radius:4px;cursor:pointer}
+.ime-key:hover{background:#4c5494}
     </style>
 </head>
 <body>
@@ -47,18 +58,32 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
             <button class="btn-reg" id="btnReg">注册</button>
         </div>
         <div class="tip" id="loginTip"></div>
+        <div style="font-size:12px;color:#999;margin-top:8px">注册账号名为 admin 将自动成为管理员</div>
     </div>
 </div>
 
 <div id="main-room">
-    <h1>🌐聊天室</h1>
+    <h1>🌐聊天室 <span id="admin-badge" style="color:#ffdd44;display:none">【管理员】</span></h1>
     <div id="msgbox"></div>
+
     <div class="bottom-bar">
         <input id="img-input" type="file" accept="image/*">
         <input id="msginput" placeholder="输入消息">
         <button id="pick-img">图片</button>
         <button id="sendbtn">发送</button>
+        <button id="openImeBtn">网页输入法</button>
     </div>
+    <div id="ime-panel">
+        <div>拼音模拟输入(网页内置)</div>
+        <div id="ime-keys"></div>
+    </div>
+</div>
+
+<!--管理员右键菜单-->
+<div class="context-menu" id="ctxMenu">
+    <div data-val="300000">禁言5分钟</div>
+    <div data-val="1800000">禁言30分钟</div>
+    <div data-val="-1">永久禁言</div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -76,18 +101,43 @@ const msgInput = document.getElementById("msginput");
 const sendBtn = document.getElementById("sendbtn");
 const pickImgBtn = document.getElementById("pick-img");
 const imgInput = document.getElementById("img-input");
+const ctxMenu = document.getElementById("ctxMenu");
+const adminBadge = document.getElementById("admin-badge");
+const openImeBtn = document.getElementById("openImeBtn");
+const imePanel = document.getElementById("ime-panel");
+const imeKeys = document.getElementById("ime-keys");
 
 let myName = null;
+let amIAdmin = false;
+let rightClickTargetUser = null;
 
 //渲染消息
 function renderMsg(item){
     const div = document.createElement("div");
+    if(item.type === "system"){
+        div.className = "system-notice";
+        div.innerText = item.msg;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+        return;
+    }
     div.className = item.sender === myName ? "msg-self" : "msg-other";
+    div.dataset.username = item.sender;
     div.innerHTML = `<div class="name">${item.sender}</div>`;
     if(item.img){
         div.innerHTML += `<img class="msg-img" src="${item.img}">`;
     }else{
         div.innerHTML += `<div class="text">${escapeHtml(item.text)}</div>`;
+    }
+    //管理员右键
+    if(amIAdmin && item.sender !== myName){
+        div.oncontextmenu = function(e){
+            e.preventDefault();
+            rightClickTargetUser = item.sender;
+            ctxMenu.style.display="block";
+            ctxMenu.style.left = e.pageX + "px";
+            ctxMenu.style.top = e.pageY + "px";
+        }
     }
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
@@ -101,6 +151,23 @@ socket.on("history",arr=>{
     arr.forEach(renderMsg);
 })
 socket.on("chat",d=>renderMsg(d));
+socket.on("systemNotice",d=>renderMsg({type:"system",msg:d.msg}));
+
+//点击空白关闭右键菜单
+document.body.onclick=()=>ctxMenu.style.display="none";
+//执行禁言
+ctxMenu.querySelectorAll("div").forEach(el=>{
+    el.onclick = async ()=>{
+        const dur = Number(el.dataset.val);
+        ctxMenu.style.display="none";
+        if(!rightClickTargetUser) return;
+        await fetch("/api/mute",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({adminName:myName,targetUser:rightClickTargetUser,durationMs:dur})
+        })
+    }
+})
 
 //登录
 async function doLogin(isReg){
@@ -118,6 +185,8 @@ async function doLogin(isReg){
         return;
     }
     myName = json.username || u;
+    amIAdmin = !!json.isAdmin;
+    if(amIAdmin) adminBadge.style.display="inline";
     loginModal.style.display="none";
     mainRoom.style.display="flex";
 }
@@ -148,6 +217,20 @@ imgInput.onchange = async function(){
     }
     imgInput.value="";
 }
+
+//网页简易输入法（内置拼音按键面板）
+openImeBtn.onclick=()=>{
+    imePanel.style.display = imePanel.style.display==="block"?"none":"block";
+}
+const pinyinKeys = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"," ","Backspace"];
+imeKeys.innerHTML = pinyinKeys.map(k=>`<span class="ime-key">${k}</span>`).join("");
+imeKeys.querySelectorAll(".ime-key").forEach(kn=>{
+    kn.onclick = function(){
+        const ch = this.innerText;
+        if(ch==="Backspace") msgInput.value = msgInput.value.slice(0,-1);
+        else msgInput.value += ch;
+    }
+})
 </script>
 </body>
 </html>
