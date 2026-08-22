@@ -37,18 +37,15 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
 #sendbtn{padding:0 14px;background:#3478ff}
 #adminPanelBtn{padding:0 12px;background:#995522;display:none}
 
-/*管理员右键菜单（仅保留禁言）*/
 .context-menu{position:fixed;background:#222840;border:1px solid #444;border-radius:8px;z-index:100;display:none}
 .context-menu div{padding:8px 14px;cursor:pointer}
 .context-menu div:hover{background:#343b66}
 .system-notice{text-align:center;color:#ffdd77;font-size:13px;margin:6px 0}
 
-/*网页内置输入法UI*/
 #ime-panel{display:none;background:#222840;padding:8px;border-radius:10px;margin-top:6px}
 .ime-key{display:inline-block;padding:6px 10px;margin:2px;background:#383e68;border-radius:4px;cursor:pointer}
 .ime-key:hover{background:#4c5494}
 
-/*管理员后台弹窗*/
 .admin-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;display:none;align-items:center;justify-content:center}
 .admin-modal{background:#1f2440;width:94%;max-width:620px;border-radius:12px;padding:16px;max-height:85vh;overflow-y:auto}
 .admin-modal h3{margin-bottom:10px}
@@ -60,7 +57,6 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
 .btn-mute{background:#d48822}
 .btn-close{margin-top:12px;width:100%;padding:10px;background:#444870;border:none;border-radius:8px;color:white}
 
-/*侧边栏好友群聊*/
 .sidebar-block{margin-bottom:14px}
 .sidebar-block h4{margin-bottom:6px;color:#ffdd99}
 .sidebar-item{padding:6px 8px;background:#272c4e;border-radius:6px;margin:4px 0;cursor:pointer;font-size:14px}
@@ -127,19 +123,16 @@ button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16
     </div>
 </div>
 
-<!--弹窗层-->
 <div class="pop-backdrop" id="popBackdrop">
     <div class="pop-small" id="popContent"></div>
 </div>
 
-<!--管理员右键菜单（仅保留禁言）-->
 <div class="context-menu" id="ctxMenu">
     <div data-val="300000">禁言5分钟</div>
     <div data-val="1800000">禁言30分钟</div>
     <div data-val="-1">永久禁言</div>
 </div>
 
-<!--管理员后台弹窗-->
 <div class="admin-backdrop" id="adminBackdrop">
     <div class="admin-modal">
         <h3>管理员后台</h3>
@@ -186,7 +179,6 @@ const userListBox = document.getElementById("userListBox");
 const muteListBox = document.getElementById("muteListBox");
 const banListBox = document.getElementById("banListBox");
 
-//好友群聊dom
 const addFriendInput = document.getElementById("addFriendInput");
 const btnAddFriend = document.getElementById("btnAddFriend");
 const friendApplyBox = document.getElementById("friendApplyBox");
@@ -201,11 +193,9 @@ const popContent = document.getElementById("popContent");
 let myName = null;
 let amIAdmin = false;
 let rightClickTargetUser = null;
-//聊天上下文 global / private:xxx / group:g_xxxx
 let currentChatType = "global";
 let currentChatTarget = null;
 
-//渲染消息
 function renderMsg(item){
     const div = document.createElement("div");
     if(item.type === "system"){
@@ -246,7 +236,6 @@ socket.on("history",arr=>{
 socket.on("chat",d=>renderMsg(d));
 socket.on("systemNotice",d=>renderMsg({type:"system",msg:d.msg}));
 
-//私聊消息接收
 socket.on("private_in",(payload)=>{
     if(currentChatType==="private" && currentChatTarget === payload.fromUser){
         const div = document.createElement("div");
@@ -256,7 +245,6 @@ socket.on("private_in",(payload)=>{
         box.scrollTop = box.scrollHeight;
     }
 })
-//群聊消息接收
 socket.on("group_in",(payload)=>{
     if(currentChatType==="group" && currentChatTarget === payload.groupId){
         const div = document.createElement("div");
@@ -283,7 +271,6 @@ ctxMenu.querySelectorAll("div").forEach(el=>{
     }
 })
 
-//登录
 async function doLogin(isReg){
     loginTip.innerText="";
     const u = inpUser.value.trim();
@@ -312,7 +299,6 @@ async function doLogin(isReg){
 btnLogin.onclick=()=>doLogin(false);
 btnReg.onclick=()=>doLogin(true);
 
-//发送文字
 function sendText(){
     const text = msgInput.value.trim();
     if(!text||!myName) return;
@@ -328,7 +314,6 @@ function sendText(){
 sendBtn.onclick = sendText;
 msgInput.onkeydown = e=>{if(e.key==="Enter") sendText()}
 
-//发送图片
 pickImgBtn.onclick=()=>imgInput.click();
 imgInput.onchange = async function(){
     const file = this.files[0];
@@ -343,7 +328,6 @@ imgInput.onchange = async function(){
     imgInput.value="";
 }
 
-//网页简易输入法
 openImeBtn.onclick=()=>{
     imePanel.style.display = imePanel.style.display==="block"?"none":"block";
 }
@@ -357,7 +341,6 @@ imeKeys.querySelectorAll(".ime-key").forEach(kn=>{
     }
 })
 
-//管理员后台
 adminPanelBtn.onclick = async ()=>{
     const res = await fetch("/api/admin-data",{
         method:"POST",
@@ -367,7 +350,6 @@ adminPanelBtn.onclick = async ()=>{
     const j = await res.json();
     if(!j.ok) return;
 
-    //用户列表，附带封禁按钮
     userListBox.innerHTML = j.userList.map(u=>{
         return `<div class="item-row">
             <span>${u.username} ${u.isAdmin?"(管理员)":""}</span>
@@ -386,7 +368,6 @@ adminPanelBtn.onclick = async ()=>{
         }
     })
 
-    //禁言列表+解除禁言
     muteListBox.innerHTML = "";
     if(j.muteList.length===0){
         muteListBox.innerHTML = `<div style="padding:6px;color:#aaa">暂无禁言用户</div>`;
@@ -412,7 +393,6 @@ adminPanelBtn.onclick = async ()=>{
         })
     }
 
-    //封禁列表+解除封禁
     banListBox.innerHTML = "";
     if(j.banList.length===0){
         banListBox.innerHTML = `<div style="padding:6px;color:#aaa">暂无封禁账号</div>`;
@@ -441,9 +421,7 @@ adminPanelBtn.onclick = async ()=>{
 }
 closeAdminBtn.onclick = ()=> adminBackdrop.style.display="none";
 
-// ==========好友&群聊逻辑==========
 async function loadFriendAndGroup(){
-    //加载好友
     const fr = await fetch("/api/friend/list",{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({username:myName})
@@ -481,7 +459,6 @@ async function loadFriendAndGroup(){
         friendListBox.appendChild(div);
     })
 
-    //加载我的群
     const gr = await fetch("/api/group/mine",{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({username:myName})
@@ -502,7 +479,6 @@ async function loadFriendAndGroup(){
     })
 }
 
-//添加好友
 btnAddFriend.onclick=async ()=>{
     const t = addFriendInput.value.trim();
     if(!t)return;
@@ -510,4 +486,47 @@ btnAddFriend.onclick=async ()=>{
         method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({fromUser:myName,toUser:t})
     })
+    const j = await res.json();
+    alert(j.msg||"申请已发送");
+    addFriendInput.value="";
+}
 
+btnCreateGroup.onclick=async ()=>{
+    const name = prompt("输入群聊名称");
+    if(!name) return;
+    const res = await fetch("/api/group/create",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({creatorName:myName,groupName:name})
+    })
+    const j = await res.json();
+    if(j.ok){
+        alert(`群创建成功！群码：${j.groupCode}\n把群码发给好友，好友输入群码即可加入`);
+        loadFriendAndGroup();
+    }
+}
+
+btnJoinByCode.onclick=async ()=>{
+    const code = joinGroupCodeInput.value.trim().toUpperCase();
+    if(!code) return;
+    const res = await fetch("/api/group/joinByCode",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({code,username:myName})
+    })
+    const j = await res.json();
+    if(!j.ok){
+        alert(j.msg);
+    }else{
+        alert("加入群聊成功");
+        loadFriendAndGroup();
+    }
+    joinGroupCodeInput.value="";
+}
+
+document.querySelector('[data-type="global"]').onclick=()=>{
+    box.innerHTML="";
+    currentChatType="global";
+    currentChatTarget=null;
+}
+</script>
+</body>
+</html>
