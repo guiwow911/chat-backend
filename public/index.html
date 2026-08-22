@@ -1,25 +1,2090 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>简聊</title><script src="/socket.io/socket.io.js"></script>
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+
+<title>简聊</title>
+
+<script src="/socket.io/socket.io.js"></script>
+
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,"Microsoft YaHei",sans-serif;background:#f5f7fb;color:#172033}button,input{font:inherit}button{cursor:pointer;border:0}.auth{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#eef2ff,#fff)}.card{width:390px;background:#fff;padding:34px;border:1px solid #e6e9f0;border-radius:20px;box-shadow:0 20px 70px #0001}.logo{font-size:28px;font-weight:800}.muted{color:#81899a}.field{margin:14px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}input{width:100%;padding:12px 14px;border:1px solid #dfe4ed;border-radius:11px;outline:0}.primary{background:#5865f2;color:#fff;font-weight:700}.wide{width:100%;padding:12px;border-radius:11px}.link{background:none;color:#5865f2;width:100%;margin-top:12px}.hide{display:none!important}
-.app{height:100vh;display:flex}.side{width:250px;background:#fff;border-right:1px solid #e7eaf0;padding:16px 12px;display:flex;flex-direction:column}.brand{font-size:21px;font-weight:800;padding:8px 10px 20px}.nav{width:100%;padding:11px 12px;text-align:left;background:none;border-radius:10px;color:#5f687a}.nav:hover{background:#eff1ff;color:#5865f2}.sec{font-size:11px;color:#9aa1b0;font-weight:800;margin:20px 10px 7px}.item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;cursor:pointer}.item:hover{background:#f5f6f9}.ava{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#e8ebff;color:#5865f2;font-weight:800}.me{margin-top:auto;border-top:1px solid #eee;padding:14px 8px;display:flex;gap:9px}.main{flex:1;display:flex;flex-direction:column}.top{height:62px;background:#fff;border-bottom:1px solid #e7eaf0;display:flex;align-items:center;padding:0 22px;gap:10px;font-weight:800}.online{font-size:12px;color:#20a36a}.msgs{flex:1;overflow:auto;padding:24px 8%;background:#fbfcfe}.chat{flex:1;display:flex;flex-direction:column;min-height:0}.msg{display:flex;gap:9px;margin:16px 0}.mine{justify-content:flex-end}.bubble{max-width:70vw;background:#fff;border:1px solid #e7eaf0;border-radius:14px;padding:10px 13px}.mine .bubble{background:#5865f2;color:#fff}.nm{font-size:12px;font-weight:700;color:#5f687a;margin-bottom:4px}.composer{display:flex;gap:10px;padding:14px 7%;background:#fff;border-top:1px solid #e7eaf0}.composer button{width:48px;border-radius:11px}.right{width:280px;background:#fff;border-left:1px solid #e7eaf0;padding:20px}.box{border:1px solid #e7eaf0;border-radius:12px;padding:14px;margin-bottom:10px}.box button{padding:8px 10px;border-radius:8px;background:#eff1ff;color:#5865f2;font-weight:700;margin:8px 6px 0 0}.modal{position:fixed;inset:0;background:#11182766;display:none;place-items:center}.modal.show{display:grid}.actions{display:flex;gap:10px}.actions>*{flex:1;padding:11px;border-radius:10px}
-</style></head><body>
-<div id="auth" class="auth"><div class="card"><div class="logo">简聊</div><div class="muted">简单、清爽、实时聊天</div><div id="login"><h2>登录</h2><div class="field"><label>用户名</label><input id="lu"></div><div class="field"><label>密码</label><input id="lp" type="password"></div><button class="wide primary" onclick="login()">登录</button><button class="link" onclick="toggle()">没有账号？注册</button></div><div id="reg" class="hide"><h2>注册</h2><div class="field"><label>用户名</label><input id="ru"></div><div class="field"><label>密码（至少6位）</label><input id="rp" type="password"></div><button class="wide primary" onclick="register()">注册并进入</button><button class="link" onclick="toggle()">返回登录</button></div></div></div>
-<div id="app" class="app hide"><aside class="side"><div class="brand">简聊</div><button class="nav">💬 公共频道</button><button class="nav" onclick="showModal('group')">➕ 创建群聊</button><button class="nav" onclick="showModal('join')">🔗 加入群聊</button><button class="nav" onclick="showModal('friend')">👤 添加好友</button><div class="sec">好友</div><div id="friends"></div><div class="sec">我的群聊</div><div id="groups"></div><div class="me"><div id="ua" class="ava"></div><div><b id="un"></b><div class="muted">在线</div></div></div></aside><main class="main"><div class="top"><span id="title">公共聊天</span><span class="online">● 在线</span></div><div class="chat"><div id="msgs" class="msgs"></div><div class="composer"><input id="text" placeholder="输入消息，Enter发送" onkeydown="if(event.key==='Enter')send()"><button class="primary" onclick="send()">➤</button></div></div></main><aside class="right"><div class="box"><b>聊天信息</b><p class="muted">多人实时聊天、账号、好友、群聊和消息均由服务器处理。</p></div></aside></div>
-<div id="modal" class="modal"><div class="card"><h3 id="mt"></h3><div class="field"><label id="ml"></label><input id="mi"></div><div class="actions"><button onclick="closeModal()">取消</button><button class="primary" onclick="confirmModal()">确定</button></div></div></div>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:
+    Arial,
+    "Microsoft YaHei",
+    sans-serif;
+
+  background:#f5f7fb;
+  color:#172033;
+}
+
+button,
+input{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+  border:0;
+}
+
+.hide{
+  display:none!important;
+}
+
+/* 登录 */
+
+.auth{
+  min-height:100vh;
+
+  display:grid;
+  place-items:center;
+
+  background:
+    linear-gradient(
+      135deg,
+      #eef2ff,
+      #ffffff
+    );
+}
+
+.card{
+  width:390px;
+
+  background:white;
+
+  padding:32px;
+
+  border:
+    1px solid
+    #e6e9f0;
+
+  border-radius:20px;
+
+  box-shadow:
+    0 20px 70px
+    #0001;
+}
+
+.logo{
+  font-size:28px;
+  font-weight:800;
+}
+
+.muted{
+  color:#81899a;
+}
+
+.field{
+  margin:14px 0;
+}
+
+.field label{
+  display:block;
+
+  font-size:13px;
+
+  font-weight:700;
+
+  margin-bottom:7px;
+}
+
+input{
+  width:100%;
+
+  padding:
+    12px
+    14px;
+
+  border:
+    1px solid
+    #dfe4ed;
+
+  border-radius:11px;
+
+  outline:none;
+}
+
+input:focus{
+  border-color:#5865f2;
+}
+
+.primary{
+  background:#5865f2;
+  color:white;
+  font-weight:700;
+}
+
+.wide{
+  width:100%;
+  padding:12px;
+  border-radius:11px;
+}
+
+.link{
+  background:none;
+  color:#5865f2;
+  width:100%;
+  margin-top:12px;
+}
+
+/* 主界面 */
+
+.app{
+  height:100vh;
+  display:flex;
+}
+
+.side{
+  width:250px;
+
+  background:white;
+
+  border-right:
+    1px solid
+    #e7eaf0;
+
+  padding:
+    16px 12px;
+
+  display:flex;
+  flex-direction:column;
+
+  overflow:auto;
+}
+
+.brand{
+  font-size:21px;
+  font-weight:800;
+
+  padding:
+    8px 10px
+    20px;
+}
+
+.nav{
+  width:100%;
+
+  padding:
+    11px 12px;
+
+  text-align:left;
+
+  background:none;
+
+  border-radius:10px;
+
+  color:#5f687a;
+}
+
+.nav:hover{
+  background:#eff1ff;
+  color:#5865f2;
+}
+
+.admin-nav{
+  color:#b87300;
+}
+
+.sec{
+  font-size:11px;
+  color:#9aa1b0;
+
+  font-weight:800;
+
+  margin:
+    20px 10px
+    7px;
+}
+
+.item{
+  display:flex;
+
+  align-items:center;
+
+  gap:9px;
+
+  padding:
+    9px 10px;
+
+  border-radius:10px;
+
+  cursor:pointer;
+}
+
+.item:hover{
+  background:#f5f6f9;
+}
+
+.ava{
+  width:34px;
+  height:34px;
+
+  border-radius:50%;
+
+  display:grid;
+  place-items:center;
+
+  background:#e8ebff;
+
+  color:#5865f2;
+
+  font-weight:800;
+
+  flex:none;
+}
+
+.me{
+  margin-top:auto;
+
+  border-top:
+    1px solid
+    #eee;
+
+  padding:14px 8px;
+
+  display:flex;
+
+  gap:9px;
+}
+
+.main{
+  flex:1;
+
+  display:flex;
+  flex-direction:column;
+
+  min-width:0;
+}
+
+.top{
+  height:62px;
+
+  background:white;
+
+  border-bottom:
+    1px solid
+    #e7eaf0;
+
+  display:flex;
+
+  align-items:center;
+
+  padding:
+    0 22px;
+
+  gap:10px;
+
+  font-weight:800;
+}
+
+.online{
+  font-size:12px;
+  color:#20a36a;
+}
+
+.chat{
+  flex:1;
+
+  display:flex;
+  flex-direction:column;
+
+  min-height:0;
+}
+
+.msgs{
+  flex:1;
+
+  overflow:auto;
+
+  padding:
+    24px 8%;
+
+  background:#fbfcfe;
+}
+
+.msg{
+  display:flex;
+
+  gap:9px;
+
+  margin:16px 0;
+}
+
+.mine{
+  justify-content:flex-end;
+}
+
+.bubble{
+  max-width:
+    min(70vw,700px);
+
+  background:white;
+
+  border:
+    1px solid
+    #e7eaf0;
+
+  border-radius:14px;
+
+  padding:
+    10px 13px;
+
+  white-space:pre-wrap;
+
+  word-break:break-word;
+}
+
+.mine .bubble{
+  background:#5865f2;
+
+  color:white;
+
+  border-color:#5865f2;
+}
+
+.nm{
+  font-size:12px;
+
+  font-weight:700;
+
+  color:#5f687a;
+
+  margin-bottom:4px;
+}
+
+.composer{
+  display:flex;
+
+  gap:10px;
+
+  padding:
+    14px 7%;
+
+  background:white;
+
+  border-top:
+    1px solid
+    #e7eaf0;
+}
+
+.composer button{
+  width:48px;
+  border-radius:11px;
+}
+
+.right{
+  width:280px;
+
+  background:white;
+
+  border-left:
+    1px solid
+    #e7eaf0;
+
+  padding:20px;
+
+  overflow:auto;
+}
+
+.box{
+  border:
+    1px solid
+    #e7eaf0;
+
+  border-radius:12px;
+
+  padding:14px;
+
+  margin-bottom:10px;
+}
+
+.game-mention{
+  color:#5865f2;
+
+  font-weight:800;
+
+  text-decoration:none;
+}
+
+.game-mention:hover{
+  text-decoration:underline;
+}
+
+/* 弹窗 */
+
+.modal{
+  position:fixed;
+
+  inset:0;
+
+  background:#11182766;
+
+  display:none;
+
+  place-items:center;
+
+  padding:20px;
+}
+
+.modal.show{
+  display:grid;
+}
+
+.actions{
+  display:flex;
+
+  gap:10px;
+}
+
+.actions>*{
+  flex:1;
+
+  padding:11px;
+
+  border-radius:10px;
+}
+
+/* 管理员 */
+
+.admin-list{
+  max-height:65vh;
+  overflow:auto;
+}
+
+.admin-user{
+  border:
+    1px solid
+    #e7eaf0;
+
+  border-radius:12px;
+
+  padding:12px;
+
+  margin:8px 0;
+}
+
+.line{
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  gap:10px;
+}
+
+.admin-user button{
+  padding:
+    8px 10px;
+
+  border-radius:8px;
+
+  background:#eff1ff;
+
+  color:#5865f2;
+
+  font-weight:700;
+
+  margin:4px;
+}
+
+.danger{
+  background:#ffe8e8!important;
+  color:#c62828!important;
+}
+
+.warn{
+  background:#fff4d8!important;
+  color:#9a6500!important;
+}
+
+.tag{
+  font-size:11px;
+
+  background:#f0f2f7;
+
+  padding:
+    3px 7px;
+
+  border-radius:999px;
+
+  color:#687184;
+}
+
+@media(max-width:900px){
+
+  .right{
+    display:none;
+  }
+
+  .side{
+    width:210px;
+  }
+
+  .msgs{
+    padding:
+      20px 4%;
+  }
+
+}
+
+@media(max-width:600px){
+
+  .side{
+    width:76px;
+    padding:10px 8px;
+  }
+
+  .brand{
+    font-size:0;
+  }
+
+  .brand:after{
+    content:"简";
+
+    font-size:21px;
+  }
+
+  .nav{
+    font-size:0;
+
+    text-align:center;
+  }
+
+  .sec{
+    display:none;
+  }
+
+  .item span{
+    display:none;
+  }
+
+  .item{
+    justify-content:center;
+  }
+
+  .me div:not(.ava){
+    display:none;
+  }
+
+  .msgs{
+    padding:
+      15px 3%;
+  }
+
+  .composer{
+    padding:10px;
+  }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- ================= 登录 ================= -->
+
+<div id="auth" class="auth">
+
+  <div class="card">
+
+    <div class="logo">
+      简聊
+    </div>
+
+    <div class="muted">
+      简单、清爽、实时聊天
+    </div>
+
+    <!-- 登录 -->
+
+    <section id="login">
+
+      <h2>登录</h2>
+
+      <div class="field">
+
+        <label>
+          用户名
+        </label>
+
+        <input
+          id="lu"
+        >
+
+      </div>
+
+      <div class="field">
+
+        <label>
+          密码
+        </label>
+
+        <input
+          id="lp"
+          type="password"
+        >
+
+      </div>
+
+      <button
+        class="wide primary"
+        onclick="login()"
+      >
+        登录
+      </button>
+
+      <button
+        class="link"
+        onclick="toggleAuth()"
+      >
+        没有账号？注册
+      </button>
+
+    </section>
+
+    <!-- 注册 -->
+
+    <section
+      id="reg"
+      class="hide"
+    >
+
+      <h2>
+        注册
+      </h2>
+
+      <div class="field">
+
+        <label>
+          用户名
+        </label>
+
+        <input
+          id="ru"
+        >
+
+      </div>
+
+      <div class="field">
+
+        <label>
+          密码（至少6位）
+        </label>
+
+        <input
+          id="rp"
+          type="password"
+        >
+
+      </div>
+
+      <button
+        class="wide primary"
+        onclick="register()"
+      >
+        注册并进入
+      </button>
+
+      <button
+        class="link"
+        onclick="toggleAuth()"
+      >
+        返回登录
+      </button>
+
+    </section>
+
+  </div>
+
+</div>
+
+
+<!-- ================= 主界面 ================= -->
+
+<div
+  id="app"
+  class="app hide"
+>
+
+  <!-- 左侧 -->
+
+  <aside class="side">
+
+    <div class="brand">
+      简聊
+    </div>
+
+    <button
+      class="nav"
+      onclick="openChannel(
+        'public',
+        'public',
+        '公共聊天'
+      )"
+    >
+      💬 公共频道
+    </button>
+
+    <button
+      class="nav"
+      onclick="showModal('group')"
+    >
+      ➕ 创建群聊
+    </button>
+
+    <button
+      class="nav"
+      onclick="showModal('join')"
+    >
+      🔗 加入群聊
+    </button>
+
+    <button
+      class="nav"
+      onclick="showModal('friend')"
+    >
+      👤 添加好友
+    </button>
+
+    <button
+      id="adminNav"
+      class="nav admin-nav hide"
+      onclick="openAdmin()"
+    >
+      👑 管理员
+    </button>
+
+    <div class="sec">
+      好友
+    </div>
+
+    <div id="friends"></div>
+
+    <div class="sec">
+      我的群聊
+    </div>
+
+    <div id="groups"></div>
+
+    <div class="me">
+
+      <div
+        id="ua"
+        class="ava"
+      ></div>
+
+      <div>
+
+        <b id="un"></b>
+
+        <div
+          id="ustate"
+          class="muted"
+        >
+          在线
+        </div>
+
+      </div>
+
+    </div>
+
+  </aside>
+
+
+  <!-- 中间聊天 -->
+
+  <main class="main">
+
+    <div class="top">
+
+      <span id="title">
+        公共聊天
+      </span>
+
+      <span class="online">
+        ● 在线
+      </span>
+
+    </div>
+
+    <div class="chat">
+
+      <div
+        id="msgs"
+        class="msgs"
+      ></div>
+
+      <div class="composer">
+
+        <input
+          id="text"
+          placeholder="输入消息，Enter发送"
+          onkeydown="
+          if(event.key==='Enter'&&!event.shiftKey){
+            event.preventDefault();
+            send()
+          }
+          "
+        >
+
+        <button
+          class="primary"
+          onclick="send()"
+        >
+          ➤
+        </button>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <!-- 右侧 -->
+
+  <aside class="right">
+
+    <div class="box">
+
+      <b>
+        聊天信息
+      </b>
+
+      <p class="muted">
+        消息使用 PostgreSQL
+        保存，并通过 Socket.IO
+        实时推送。
+      </p>
+
+    </div>
+
+    <div class="box">
+
+      <b>
+        特殊功能
+      </b>
+
+      <p class="muted">
+        在公共频道发送：
+      </p>
+
+      <b>
+        @地铁跑酷
+      </b>
+
+      <p class="muted">
+        点击后进入指定网站。
+      </p>
+
+    </div>
+
+  </aside>
+
+</div>
+
+
+<!-- ================= 普通弹窗 ================= -->
+
+<div
+  id="modal"
+  class="modal"
+>
+
+  <div class="card">
+
+    <h3 id="mt"></h3>
+
+    <div class="field">
+
+      <label id="ml"></label>
+
+      <input id="mi">
+
+    </div>
+
+    <div class="actions">
+
+      <button onclick="closeModal()">
+        取消
+      </button>
+
+      <button
+        class="primary"
+        onclick="confirmModal()"
+      >
+        确定
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ================= 管理员 ================= -->
+
+<div
+  id="adminModal"
+  class="modal"
+>
+
+  <div
+    class="card"
+    style="width:min(700px,95vw)"
+  >
+
+    <div class="line">
+
+      <h2>
+        👑 管理员面板
+      </h2>
+
+      <button
+        onclick="closeAdmin()"
+      >
+        ✕
+      </button>
+
+    </div>
+
+    <div class="muted">
+
+      管理员可以禁言、
+      解除禁言、
+      封禁和解封普通用户。
+
+    </div>
+
+    <div
+      id="adminList"
+      class="admin-list"
+    ></div>
+
+  </div>
+
+</div>
+
+
 <script>
-let token=localStorage.token||"",me=null,ch={type:"public",id:"public"},sock,mm;
-const $=x=>document.getElementById(x);
-async function api(u,o={}){o.headers={...(o.headers||{}),"Content-Type":"application/json",...(token?{Authorization:"Bearer "+token}:{})};let r=await fetch(u,o),d=await r.json();if(!r.ok)throw Error(d.error||"请求失败");return d}
-function toggle(){$("login").classList.toggle("hide");$("reg").classList.toggle("hide")}
-async function register(){try{enter(await api("/api/register",{method:"POST",body:JSON.stringify({username:$("ru").value,password:$("rp").value})}))}catch(e){alert(e.message)}}
-async function login(){try{enter(await api("/api/login",{method:"POST",body:JSON.stringify({username:$("lu").value,password:$("lp").value})}))}catch(e){alert(e.message)}}
-async function enter(d){token=d.token;me=d.user;localStorage.token=token;$("auth").classList.add("hide");$("app").classList.remove("hide");$("un").textContent=me.username;$("ua").textContent=me.username[0];sock=io({auth:{token}});sock.on("message",m=>{if(m.channel_type===ch.type&&m.channel_id==ch.id)draw([m],true)});await side();await open("public","public","公共聊天")}
-async function side(){let [f,g]=await Promise.all([api("/api/friends"),api("/api/groups")]);$("friends").innerHTML=f.map(x=>`<div class=item onclick='open("private","${x.id}","与 ${esc(x.username)} 私聊")'><div class=ava>${esc(x.username[0])}</div><span>${esc(x.username)}</span></div>`).join("");$("groups").innerHTML=g.map(x=>`<div class=item onclick='open("group","${x.id}","# ${esc(x.name)}")'><div class=ava>#</div><span>${esc(x.name)}</span></div>`).join("")}
-async function open(t,i,title){ch={type:t,id:String(i)};$("title").textContent=title;sock.emit("join",ch);draw(await api(`/api/messages?type=${t}&id=${i}`),false)}
-function draw(a,append){if(!append)$("msgs").innerHTML="";a.forEach(m=>$("msgs").insertAdjacentHTML("beforeend",`<div class="msg ${m.user_id===me.id?"mine":""}"><div class=ava>${esc(m.username[0])}</div><div><div class=nm>${esc(m.username)}</div><div class=bubble>${esc(m.text)}</div></div></div>`));$("msgs").scrollTop=$("msgs").scrollHeight}
-async function send(){let t=$("text").value.trim();if(!t)return;try{await api("/api/messages",{method:"POST",body:JSON.stringify({...ch,text:t})});$("text").value=""}catch(e){alert(e.message)}}
-function showModal(x){mm=x;$("modal").classList.add("show");$("mi").value="";let a={friend:["添加好友","好友用户名"],group:["创建群聊","群名称"],join:["加入群聊","邀请码"]}[x];$("mt").textContent=a[0];$("ml").textContent=a[1];$("mi").focus()}function closeModal(){$("modal").classList.remove("show")}
-async function confirmModal(){try{let v=$("mi").value.trim();if(mm==="friend"){await api("/api/friends",{method:"POST",body:JSON.stringify({username:v})});await side()}if(mm==="group"){let g=await api("/api/groups",{method:"POST",body:JSON.stringify({name:v})});await side();await open("group",g.id,"# "+g.name);alert("群聊邀请码："+g.invite_code)}if(mm==="join"){let g=await api("/api/groups/join",{method:"POST",body:JSON.stringify({inviteCode:v})});await side();await open("group",g.id,"# "+g.name)}closeModal()}catch(e){alert(e.message)}}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-if(token)api("/api/me").then(d=>enter({token,user:d.user})).catch(()=>{localStorage.removeItem("token")});
-</script></body></html>
+
+/* =========================
+   全局变量
+========================= */
+
+let token =
+  localStorage.getItem("token") || "";
+
+let me = null;
+
+let channel = {
+  type:"public",
+  id:"public"
+};
+
+let socket = null;
+
+let modalType = null;
+
+
+/* =========================
+   DOM
+========================= */
+
+const $ = id =>
+  document.getElementById(id);
+
+
+/* =========================
+   API
+========================= */
+
+async function api(
+  url,
+  options = {}
+){
+
+  options.headers = {
+
+    "Content-Type":
+      "application/json",
+
+    ...(options.headers || {}),
+
+    ...(token
+      ? {
+          Authorization:
+            "Bearer " + token
+        }
+      : {})
+
+  };
+
+  const response =
+    await fetch(
+      url,
+      options
+    );
+
+  const data =
+    await response
+      .json()
+      .catch(() => ({}));
+
+  if (!response.ok){
+
+    throw new Error(
+      data.error ||
+      "请求失败"
+    );
+
+  }
+
+  return data;
+
+}
+
+
+/* =========================
+   登录 / 注册
+========================= */
+
+function toggleAuth(){
+
+  $("login")
+    .classList
+    .toggle("hide");
+
+  $("reg")
+    .classList
+    .toggle("hide");
+
+}
+
+
+async function register(){
+
+  try{
+
+    const data =
+      await api(
+        "/api/register",
+        {
+          method:"POST",
+
+          body:JSON.stringify({
+
+            username:
+              $("ru").value,
+
+            password:
+              $("rp").value
+
+          })
+
+        }
+      );
+
+    await enter(data);
+
+  }catch(error){
+
+    alert(error.message);
+
+  }
+
+}
+
+
+async function login(){
+
+  try{
+
+    const data =
+      await api(
+        "/api/login",
+        {
+          method:"POST",
+
+          body:JSON.stringify({
+
+            username:
+              $("lu").value,
+
+            password:
+              $("lp").value
+
+          })
+
+        }
+      );
+
+    await enter(data);
+
+  }catch(error){
+
+    alert(error.message);
+
+  }
+
+}
+
+
+/* =========================
+   进入网站
+========================= */
+
+async function enter(data){
+
+  token =
+    data.token;
+
+  me =
+    data.user;
+
+  localStorage.setItem(
+    "token",
+    token
+  );
+
+  $("auth")
+    .classList
+    .add("hide");
+
+  $("app")
+    .classList
+    .remove("hide");
+
+  $("un")
+    .textContent =
+    me.username;
+
+  $("ua")
+    .textContent =
+    me.username[0] || "?";
+
+  $("ustate")
+    .textContent =
+    me.is_muted
+      ? "已禁言"
+      : "在线";
+
+
+  if(me.is_admin){
+
+    $("adminNav")
+      .classList
+      .remove("hide");
+
+  }
+
+
+  /* Socket.IO */
+
+  socket =
+    io({
+      auth:{
+        token
+      }
+    });
+
+
+  socket.on(
+    "message",
+    message => {
+
+      if(
+        message.channel_type ===
+        channel.type &&
+
+        String(
+          message.channel_id
+        ) ===
+        String(
+          channel.id
+        )
+      ){
+
+        draw(
+          [message],
+          true
+        );
+
+      }
+
+    }
+  );
+
+
+  socket.on(
+    "user_moderated",
+    data => {
+
+      if(
+        data.userId === me.id
+      ){
+
+        if(
+          data.field ===
+          "is_banned" &&
+          data.value
+        ){
+
+          alert(
+            "你的账号已被封禁"
+          );
+
+          logout();
+
+        }
+
+        if(
+          data.field ===
+          "is_muted"
+        ){
+
+          $("ustate")
+            .textContent =
+            data.value
+              ? "已禁言"
+              : "在线";
+
+        }
+
+      }
+
+    }
+  );
+
+
+  await sidebar();
+
+  await openChannel(
+    "public",
+    "public",
+    "公共聊天"
+  );
+
+}
+
+
+/* =========================
+   侧边栏
+========================= */
+
+async function sidebar(){
+
+  const [
+    friends,
+    groups
+  ] =
+    await Promise.all([
+
+      api(
+        "/api/friends"
+      ),
+
+      api(
+        "/api/groups"
+      )
+
+    ]);
+
+
+  $("friends")
+    .innerHTML =
+    friends
+      .map(
+        friend => `
+
+        <div
+          class="item"
+          onclick='openChannel(
+            "private",
+            "${friend.id}",
+            "与 ${escapeHtml(
+              friend.username
+            )} 私聊"
+          )'
+        >
+
+          <div class="ava">
+            ${escapeHtml(
+              friend.username[0] || "?"
+            )}
+          </div>
+
+          <span>
+            ${escapeHtml(
+              friend.username
+            )}
+          </span>
+
+        </div>
+
+        `
+      )
+      .join("");
+
+
+  $("groups")
+    .innerHTML =
+    groups
+      .map(
+        group => `
+
+        <div
+          class="item"
+          onclick='openChannel(
+            "group",
+            "${group.id}",
+            "# ${escapeHtml(
+              group.name
+            )}"
+          )'
+        >
+
+          <div class="ava">
+            #
+          </div>
+
+          <span>
+            ${escapeHtml(
+              group.name
+            )}
+          </span>
+
+        </div>
+
+        `
+      )
+      .join("");
+
+}
+
+
+/* =========================
+   HTML 转义
+========================= */
+
+function escapeHtml(value){
+
+  return String(value)
+    .replace(
+      /[&<>"']/g,
+      character => {
+
+        const map = {
+
+          "&":"&amp;",
+          "<":"&lt;",
+          ">":"&gt;",
+          '"':"&quot;",
+          "'":"&#39;"
+
+        };
+
+        return map[
+          character
+        ];
+
+      }
+    );
+
+}
+
+
+/* =========================
+   地铁跑酷特殊 @
+========================= */
+
+function renderMessage(text){
+
+  return escapeHtml(text)
+    .replace(
+      /@地铁跑酷/g,
+
+      `<a
+        class="game-mention"
+        href="https://subwaysurfers3dbyzjp.netlify.app/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >@地铁跑酷</a>`
+
+    );
+
+}
+
+
+/* =========================
+   打开频道
+========================= */
+
+async function openChannel(
+  type,
+  id,
+  title
+){
+
+  channel = {
+
+    type,
+
+    id:String(id)
+
+  };
+
+  $("title")
+    .textContent =
+    title;
+
+
+  if(socket){
+
+    socket.emit(
+      "join",
+      channel
+    );
+
+  }
+
+
+  try{
+
+    const messages =
+      await api(
+        `/api/messages?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`
+      );
+
+    draw(
+      messages,
+      false
+    );
+
+  }catch(error){
+
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   显示消息
+========================= */
+
+function draw(
+  messages,
+  append
+){
+
+  if(!append){
+
+    $("msgs")
+      .innerHTML =
+      "";
+
+  }
+
+
+  for(
+    const message
+    of messages
+  ){
+
+    const mine =
+      message.user_id === me.id;
+
+    $("msgs")
+      .insertAdjacentHTML(
+        "beforeend",
+
+        `
+
+        <div
+          class="msg ${mine ? "mine" : ""}"
+        >
+
+          <div class="ava">
+
+            ${escapeHtml(
+              (
+                message.username ||
+                "?"
+              )[0]
+            )}
+
+          </div>
+
+          <div>
+
+            <div class="nm">
+
+              ${escapeHtml(
+                message.username
+              )}
+
+            </div>
+
+            <div class="bubble">
+
+              ${renderMessage(
+                message.text
+              )}
+
+            </div>
+
+          </div>
+
+        </div>
+
+        `
+
+      );
+
+  }
+
+
+  $("msgs")
+    .scrollTop =
+    $("msgs")
+      .scrollHeight;
+
+}
+
+
+/* =========================
+   发送消息
+========================= */
+
+async function send(){
+
+  const text =
+    $("text")
+      .value
+      .trim();
+
+  if(!text)
+    return;
+
+
+  try{
+
+    await api(
+      "/api/messages",
+      {
+        method:"POST",
+
+        body:JSON.stringify({
+
+          ...channel,
+
+          text
+
+        })
+
+      }
+    );
+
+    $("text")
+      .value =
+      "";
+
+  }catch(error){
+
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   普通弹窗
+========================= */
+
+function showModal(type){
+
+  modalType =
+    type;
+
+  $("modal")
+    .classList
+    .add("show");
+
+  $("mi")
+    .value =
+    "";
+
+
+  const data = {
+
+    friend:[
+      "添加好友",
+      "好友用户名"
+    ],
+
+    group:[
+      "创建群聊",
+      "群名称"
+    ],
+
+    join:[
+      "加入群聊",
+      "邀请码"
+    ]
+
+  }[type];
+
+
+  $("mt")
+    .textContent =
+    data[0];
+
+  $("ml")
+    .textContent =
+    data[1];
+
+  $("mi")
+    .focus();
+
+}
+
+
+function closeModal(){
+
+  $("modal")
+    .classList
+    .remove("show");
+
+}
+
+
+async function confirmModal(){
+
+  const value =
+    $("mi")
+      .value
+      .trim();
+
+  if(!value){
+
+    alert(
+      "请输入内容"
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    if(
+      modalType ===
+      "friend"
+    ){
+
+      await api(
+        "/api/friends",
+        {
+          method:"POST",
+
+          body:JSON.stringify({
+            username:value
+          })
+
+        }
+      );
+
+      await sidebar();
+
+    }
+
+
+    if(
+      modalType ===
+      "group"
+    ){
+
+      const group =
+        await api(
+          "/api/groups",
+          {
+            method:"POST",
+
+            body:JSON.stringify({
+              name:value
+            })
+
+          }
+        );
+
+      await sidebar();
+
+      await openChannel(
+        "group",
+        group.id,
+        "# " + group.name
+      );
+
+      alert(
+        "创建成功！\n\n邀请码：" +
+        group.invite_code
+      );
+
+    }
+
+
+    if(
+      modalType ===
+      "join"
+    ){
+
+      const group =
+        await api(
+          "/api/groups/join",
+          {
+            method:"POST",
+
+            body:JSON.stringify({
+              inviteCode:value
+            })
+
+          }
+        );
+
+      await sidebar();
+
+      await openChannel(
+        "group",
+        group.id,
+        "# " + group.name
+      );
+
+    }
+
+
+    closeModal();
+
+  }catch(error){
+
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   管理员
+========================= */
+
+async function openAdmin(){
+
+  $("adminModal")
+    .classList
+    .add("show");
+
+  await refreshAdmin();
+
+}
+
+
+function closeAdmin(){
+
+  $("adminModal")
+    .classList
+    .remove("show");
+
+}
+
+
+async function refreshAdmin(){
+
+  try{
+
+    const users =
+      await api(
+        "/api/admin/users"
+      );
+
+
+    $("adminList")
+      .innerHTML =
+      users
+        .map(
+          user => {
+
+            if(
+              user.is_admin
+            ){
+
+              return `
+
+              <div class="admin-user">
+
+                <b>
+                  👑
+                  ${escapeHtml(
+                    user.username
+                  )}
+                </b>
+
+                <span class="tag">
+                  管理员
+                </span>
+
+              </div>
+
+              `;
+
+            }
+
+
+            return `
+
+            <div class="admin-user">
+
+              <div class="line">
+
+                <div>
+
+                  <b>
+                    ${escapeHtml(
+                      user.username
+                    )}
+                  </b>
+
+                  <div class="muted">
+
+                    ID ${user.id}
+
+                    ${
+                      user.is_muted
+                      ? " · 🔇 已禁言"
+                      : ""
+                    }
+
+                    ${
+                      user.is_banned
+                      ? " · 🚫 已封禁"
+                      : ""
+                    }
+
+                  </div>
+
+                </div>
+
+
+                <div>
+
+                  <button
+                    class="${
+                      user.is_muted
+                        ? "warn"
+                        : ""
+                    }"
+
+                    onclick="
+                      moderate(
+                        ${user.id},
+                        '${
+                          user.is_muted
+                            ? "unmute"
+                            : "mute"
+                        }'
+                      )
+                    "
+                  >
+
+                    ${
+                      user.is_muted
+                        ? "解除禁言"
+                        : "禁言"
+                    }
+
+                  </button>
+
+
+                  <button
+                    class="${
+                      user.is_banned
+                        ? "primary"
+                        : "danger"
+                    }"
+
+                    onclick="
+                      moderate(
+                        ${user.id},
+                        '${
+                          user.is_banned
+                            ? "unban"
+                            : "ban"
+                        }'
+                      )
+                    "
+                  >
+
+                    ${
+                      user.is_banned
+                        ? "解封"
+                        : "封禁"
+                    }
+
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            `;
+
+          }
+        )
+        .join("");
+
+
+  }catch(error){
+
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   管理员操作
+========================= */
+
+async function moderate(
+  id,
+  action
+){
+
+  const names = {
+
+    mute:"禁言",
+
+    unmute:"解除禁言",
+
+    ban:"封禁",
+
+    unban:"解封"
+
+  };
+
+
+  if(
+    !confirm(
+      `确定要${names[action]}这个用户吗？`
+    )
+  ){
+
+    return;
+
+  }
+
+
+  try{
+
+    await api(
+      `/api/admin/users/${id}/${action}`,
+      {
+        method:"POST"
+      }
+    );
+
+    await refreshAdmin();
+
+  }catch(error){
+
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================
+   退出
+========================= */
+
+function logout(){
+
+  localStorage.removeItem(
+    "token"
+  );
+
+  location.reload();
+
+}
+
+
+/* =========================
+   自动登录
+========================= */
+
+if(token){
+
+  api("/api/me")
+
+    .then(
+      data =>
+        enter({
+          token,
+          user:data.user
+        })
+    )
+
+    .catch(
+      () => {
+
+        localStorage.removeItem(
+          "token"
+        );
+
+        token = "";
+
+      }
+    );
+
+}
+
+</script>
+
+</body>
+
+</html>
