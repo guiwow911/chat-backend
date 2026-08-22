@@ -198,12 +198,11 @@ let amIAdmin = false;
 let rightClickTargetUser = null;
 let currentChatType = "global";
 let currentChatTarget = null;
-// 核心：会话缓存 key:会话id global / private_xxx / group_xxx
+//会话缓存 key:global / private_xxx / group_xxx
 const sessionMsgCache = {};
-// 初始化全局会话缓存
 sessionMsgCache["global"] = [];
 
-// 渲染单条消息
+//渲染单条消息
 function renderMsg(item){
     const div = document.createElement("div");
     if(item.type === "system"){
@@ -234,14 +233,14 @@ function renderMsg(item){
     box.scrollTop = box.scrollHeight;
 }
 
-// 渲染指定会话全部缓存消息
+//渲染会话全部缓存消息
 function renderSession(sessionId){
     box.innerHTML = "";
     const list = sessionMsgCache[sessionId] || [];
     list.forEach(renderMsg);
 }
 
-// 获取当前会话唯一key
+//获取当前会话key
 function getCurrentSessionKey(){
     if(currentChatType === "global") return "global";
     if(currentChatType === "private") return `private_${currentChatTarget}`;
@@ -249,16 +248,13 @@ function getCurrentSessionKey(){
     return "global";
 }
 
-// 切换会话入口
+//切换会话
 function switchSession(type, targetId, titleText){
-    // 清除侧边栏全部active标记
     document.querySelectorAll(".sidebar-item").forEach(el=>el.classList.remove("active"));
     currentChatType = type;
     currentChatTarget = targetId;
-    // 更新标题
     chatTitleDom.innerText = titleText;
     const key = getCurrentSessionKey();
-    // 没有缓存就初始化空数组
     if(!sessionMsgCache[key]) sessionMsgCache[key] = [];
     renderSession(key);
 }
@@ -273,47 +269,33 @@ socket.on("history",arr=>{
 })
 
 socket.on("chat",d=>{
-    // 全局公聊消息存入global缓存
     sessionMsgCache["global"].push(d);
     if(getCurrentSessionKey() === "global") renderMsg(d);
 })
 
 socket.on("systemNotice",d=>{
     const sysMsg = {type:"system",msg:d.msg};
-    // 系统通知全部存入全局
     sessionMsgCache["global"].push(sysMsg);
     if(getCurrentSessionKey() === "global") renderMsg(sysMsg);
 })
 
+//收到私聊消息
 socket.on("private_in",(payload)=>{
     const sessionKey = `private_${payload.fromUser}`;
     if(!sessionMsgCache[sessionKey]) sessionMsgCache[sessionKey] = [];
-    sessionMsgCache[sessionKey].push({
-        sender:payload.fromUser,
-        text:payload.text
-    })
+    sessionMsgCache[sessionKey].push({sender:payload.fromUser,text:payload.text});
     if(getCurrentSessionKey() === sessionKey){
-        const div = document.createElement("div");
-        div.className = payload.self ? "msg-self":"msg-other";
-        div.innerHTML = `<div class="name">${payload.fromUser}</div><div class="text">${escapeHtml(payload.text)}</div>`;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
+        renderMsg({sender:payload.fromUser,text:payload.text});
     }
 })
 
+//收到群聊消息
 socket.on("group_in",(payload)=>{
     const sessionKey = `group_${payload.groupId}`;
     if(!sessionMsgCache[sessionKey]) sessionMsgCache[sessionKey] = [];
-    sessionMsgCache[sessionKey].push({
-        sender:payload.fromUser,
-        text:payload.text
-    })
+    sessionMsgCache[sessionKey].push({sender:payload.fromUser,text:payload.text});
     if(getCurrentSessionKey() === sessionKey){
-        const div = document.createElement("div");
-        div.className = payload.fromUser===myName?"msg-self":"msg-other";
-        div.innerHTML = `<div class="name">${payload.fromUser}</div><div class="text">${escapeHtml(payload.text)}</div>`;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
+        renderMsg({sender:payload.fromUser,text:payload.text});
     }
 })
 
@@ -361,14 +343,23 @@ async function doLogin(isReg){
 btnLogin.onclick=()=>doLogin(false);
 btnReg.onclick=()=>doLogin(true);
 
+//发送消息
 function sendText(){
     const text = msgInput.value.trim();
     if(!text||!myName) return;
     if(currentChatType==="global"){
         socket.emit("chat",{sender:myName, text:text});
     }else if(currentChatType==="private"){
+        //自己发送私聊存入缓存
+        const sessionKey = `private_${currentChatTarget}`;
+        sessionMsgCache[sessionKey].push({sender:myName,text:text});
+        renderMsg({sender:myName,text:text});
         socket.emit("private_msg",{toUser:currentChatTarget,fromUser:myName,text:text});
     }else if(currentChatType==="group"){
+        //自己发送群聊存入缓存
+        const sessionKey = `group_${currentChatTarget}`;
+        sessionMsgCache[sessionKey].push({sender:myName,text:text});
+        renderMsg({sender:myName,text:text});
         socket.emit("group_msg",{groupId:currentChatTarget,fromUser:myName,text:text});
     }
     msgInput.value="";
@@ -514,7 +505,6 @@ async function loadFriendAndGroup(){
         div.className="sidebar-item";
         div.innerText = fu;
         div.onclick=()=>{
-            //切换私聊会话
             switchSession("private", fu, `👤私聊 - ${fu}`);
             div.classList.add("active");
         }
@@ -533,7 +523,6 @@ async function loadFriendAndGroup(){
         div.innerText = `${g.groupName} [${g.groupCode}]`;
         div.title=`群码：${g.groupCode}`;
         div.onclick=()=>{
-            //切换群聊会话
             switchSession("group", g.groupId, `🏘️群聊 - ${g.groupName}`);
             div.classList.add("active");
         }
@@ -584,7 +573,7 @@ btnJoinByCode.onclick=async ()=>{
     joinGroupCodeInput.value="";
 }
 
-// 点击全局聊天室
+//点击全局聊天室
 document.querySelector('[data-type="global"]').onclick=()=>{
     switchSession("global",null,"🌐全局聊天室");
     document.querySelector('[data-type="global"]').classList.add("active");
