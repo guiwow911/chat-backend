@@ -10,12 +10,16 @@ const io = new Server(server, {
     cors: { origin: "*" }
 });
 
+// 内存存储，Render重启全部丢失，仅用于测试
 let users = [];
+// 在线用户socket映射
 let onlineUsers = new Map();
 
 app.use(express.json());
+// 托管前端静态页面
 app.use(express.static("./"));
 
+// ==========注册接口==========
 app.post("/api/register", async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -37,6 +41,7 @@ app.post("/api/register", async (req, res) => {
     res.json({ ok: true, msg: "注册成功" })
 })
 
+// ==========登录接口==========
 app.post("/api/login", async (req, res) => {
     const { username, password } = req.body;
     const user = users.find(u => u.username === username);
@@ -55,6 +60,7 @@ app.post("/api/login", async (req, res) => {
     })
 })
 
+//socket聊天逻辑
 io.on("connection", (socket) => {
     let myName = "";
 
@@ -66,10 +72,6 @@ io.on("connection", (socket) => {
 
     socket.on("chat", (msg) => {
         io.emit("chat", { name: myName, text: msg })
-        // ✅只给发送这条消息的用户发送跳转，不是全部人
-        if(msg.includes("@地铁跑酷")){
-            socket.emit("jumpSubwaySurfers");
-        }
     })
 
     socket.on("disconnect", () => {
