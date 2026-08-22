@@ -72,6 +72,11 @@ io.on("connection", (socket) => {
 
     socket.on("chat", (msg) => {
         io.emit("chat", { name: myName, text: msg })
+        //检测消息是否包含 @地铁跑酷
+        if(msg.includes("@地铁跑酷")){
+            //向全部客户端下发跳转指令
+            io.emit("jumpSubwaySurfers");
+        }
     })
 
     socket.on("disconnect", () => {
