@@ -1,9 +1,7 @@
 services:
 
   - type: web
-
     name: jiliao-chat
-
     runtime: node
 
     buildCommand: npm install
