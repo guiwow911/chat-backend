@@ -7,7 +7,7 @@
 
 <meta
   name="viewport"
-  content="width=device-width,initial-scale=1"
+  content="width=device-width, initial-scale=1.0"
 >
 
 <title>简聊</title>
@@ -20,15 +20,24 @@
   box-sizing:border-box;
 }
 
+html,
 body{
   margin:0;
+  width:100%;
+  height:100%;
+}
+
+body{
+
   font-family:
+    Inter,
     Arial,
     "Microsoft YaHei",
     sans-serif;
 
   background:#f5f7fb;
-  color:#172033;
+
+  color:#1e2430;
 }
 
 button,
@@ -38,144 +47,229 @@ input{
 
 button{
   cursor:pointer;
-  border:0;
 }
 
-.hide{
+.hidden{
   display:none!important;
 }
 
-/* 登录 */
+
+/* =========================
+   登录
+========================= */
 
 .auth{
-  min-height:100vh;
 
-  display:grid;
-  place-items:center;
+  width:100%;
+  height:100%;
+
+  display:flex;
+
+  justify-content:center;
+
+  align-items:center;
 
   background:
     linear-gradient(
       135deg,
-      #eef2ff,
+      #eef1ff,
       #ffffff
     );
+
 }
 
-.card{
+.auth-card{
+
   width:390px;
 
-  background:white;
+  padding:34px;
 
-  padding:32px;
+  background:#fff;
 
   border:
     1px solid
-    #e6e9f0;
+    #e6e9ef;
 
   border-radius:20px;
 
   box-shadow:
-    0 20px 70px
-    #0001;
+    0 25px 80px
+    rgba(0,0,0,.08);
+
 }
 
 .logo{
-  font-size:28px;
-  font-weight:800;
+
+  font-size:30px;
+
+  font-weight:900;
+
+  margin-bottom:5px;
+
 }
 
-.muted{
-  color:#81899a;
+.subtitle{
+
+  color:#8b93a3;
+
+  font-size:14px;
+
+  margin-bottom:26px;
+
+}
+
+.auth-title{
+
+  margin:
+    0 0 18px;
+
 }
 
 .field{
-  margin:14px 0;
+
+  margin-bottom:15px;
+
 }
 
 .field label{
+
   display:block;
+
+  margin-bottom:7px;
 
   font-size:13px;
 
   font-weight:700;
 
-  margin-bottom:7px;
 }
 
-input{
-  width:100%;
+.input{
 
-  padding:
-    12px
-    14px;
+  width:100%;
 
   border:
     1px solid
-    #dfe4ed;
+    #dfe3eb;
 
   border-radius:11px;
 
+  padding:
+    12px 13px;
+
   outline:none;
+
+  transition:.2s;
+
 }
 
-input:focus{
+.input:focus{
+
   border-color:#5865f2;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(88,101,242,.1);
+
 }
 
 .primary{
+
   background:#5865f2;
-  color:white;
-  font-weight:700;
+
+  color:#fff;
+
+  border:0;
+
 }
 
-.wide{
+.primary:hover{
+
+  background:#4752c4;
+
+}
+
+.full{
+
   width:100%;
+
   padding:12px;
+
   border-radius:11px;
+
+  font-weight:700;
+
 }
 
-.link{
-  background:none;
-  color:#5865f2;
+.switch{
+
   width:100%;
+
   margin-top:12px;
+
+  background:transparent;
+
+  color:#5865f2;
+
+  border:0;
+
 }
 
-/* 主界面 */
+
+/* =========================
+   APP
+========================= */
 
 .app{
+
+  width:100%;
+
   height:100vh;
+
   display:flex;
+
 }
 
-.side{
+
+/* =========================
+   左侧
+========================= */
+
+.sidebar{
+
   width:250px;
 
-  background:white;
+  height:100%;
+
+  background:#fff;
 
   border-right:
     1px solid
-    #e7eaf0;
+    #e8ebf0;
 
-  padding:
-    16px 12px;
+  padding:15px;
 
   display:flex;
+
   flex-direction:column;
 
   overflow:auto;
+
 }
 
 .brand{
-  font-size:21px;
-  font-weight:800;
 
   padding:
     8px 10px
     20px;
+
+  font-size:21px;
+
+  font-weight:900;
+
 }
 
-.nav{
+.nav-button{
+
   width:100%;
 
   padding:
@@ -183,34 +277,48 @@ input:focus{
 
   text-align:left;
 
-  background:none;
+  border:0;
+
+  background:transparent;
+
+  color:#596273;
 
   border-radius:10px;
 
-  color:#5f687a;
+  margin-bottom:3px;
+
 }
 
-.nav:hover{
-  background:#eff1ff;
+.nav-button:hover{
+
+  background:#f0f2ff;
+
   color:#5865f2;
+
 }
 
-.admin-nav{
-  color:#b87300;
+.admin-button{
+
+  color:#a56b00;
+
 }
 
-.sec{
-  font-size:11px;
-  color:#9aa1b0;
-
-  font-weight:800;
+.section-title{
 
   margin:
-    20px 10px
+    20px 9px
     7px;
+
+  color:#9ba2af;
+
+  font-size:11px;
+
+  font-weight:900;
+
 }
 
-.item{
+.list-item{
+
   display:flex;
 
   align-items:center;
@@ -218,376 +326,595 @@ input:focus{
   gap:9px;
 
   padding:
-    9px 10px;
+    8px 9px;
 
   border-radius:10px;
 
   cursor:pointer;
+
 }
 
-.item:hover{
-  background:#f5f6f9;
+.list-item:hover{
+
+  background:#f5f6f8;
+
 }
 
-.ava{
-  width:34px;
-  height:34px;
+.avatar{
+
+  width:35px;
+
+  height:35px;
 
   border-radius:50%;
 
-  display:grid;
-  place-items:center;
+  display:flex;
 
-  background:#e8ebff;
+  justify-content:center;
+
+  align-items:center;
+
+  background:#e9ebff;
 
   color:#5865f2;
 
-  font-weight:800;
+  font-weight:900;
 
   flex:none;
+
 }
 
-.me{
+.profile{
+
   margin-top:auto;
+
+  padding:
+    14px 7px
+    4px;
 
   border-top:
     1px solid
-    #eee;
-
-  padding:14px 8px;
-
-  display:flex;
-
-  gap:9px;
-}
-
-.main{
-  flex:1;
-
-  display:flex;
-  flex-direction:column;
-
-  min-width:0;
-}
-
-.top{
-  height:62px;
-
-  background:white;
-
-  border-bottom:
-    1px solid
-    #e7eaf0;
+    #edf0f4;
 
   display:flex;
 
   align-items:center;
+
+  gap:9px;
+
+}
+
+.profile-name{
+
+  font-weight:800;
+
+}
+
+.profile-status{
+
+  color:#8c94a2;
+
+  font-size:12px;
+
+}
+
+
+/* =========================
+   中间
+========================= */
+
+.main{
+
+  flex:1;
+
+  min-width:0;
+
+  display:flex;
+
+  flex-direction:column;
+
+}
+
+.header{
+
+  height:62px;
+
+  flex:none;
+
+  display:flex;
+
+  align-items:center;
+
+  gap:10px;
 
   padding:
     0 22px;
 
-  gap:10px;
+  background:#fff;
 
-  font-weight:800;
+  border-bottom:
+    1px solid
+    #e8ebf0;
+
+  font-weight:900;
+
 }
 
 .online{
+
+  color:#20a56c;
+
   font-size:12px;
-  color:#20a36a;
+
 }
 
-.chat{
-  flex:1;
+.messages{
 
-  display:flex;
-  flex-direction:column;
-
-  min-height:0;
-}
-
-.msgs{
   flex:1;
 
   overflow:auto;
 
   padding:
-    24px 8%;
+    22px 8%;
 
-  background:#fbfcfe;
+  background:#fafbfd;
+
 }
 
-.msg{
+.message{
+
   display:flex;
 
   gap:9px;
 
-  margin:16px 0;
+  margin:
+    15px 0;
+
 }
 
-.mine{
+.message.mine{
+
   justify-content:flex-end;
+
 }
 
-.bubble{
+.message.mine .message-content{
+
+  order:-1;
+
+}
+
+.message-content{
+
   max-width:
-    min(70vw,700px);
+    min(720px,75%);
 
-  background:white;
+}
 
-  border:
-    1px solid
-    #e7eaf0;
+.message-name{
 
-  border-radius:14px;
+  color:#626b7b;
+
+  font-size:12px;
+
+  font-weight:800;
+
+  margin-bottom:4px;
+
+}
+
+.message-bubble{
 
   padding:
     10px 13px;
 
-  white-space:pre-wrap;
+  border:
+    1px solid
+    #e6e9ef;
+
+  background:#fff;
+
+  border-radius:14px;
+
+  line-height:1.5;
 
   word-break:break-word;
+
+  white-space:pre-wrap;
+
 }
 
-.mine .bubble{
+.message.mine
+.message-bubble{
+
   background:#5865f2;
 
-  color:white;
+  color:#fff;
 
   border-color:#5865f2;
+
 }
 
-.nm{
-  font-size:12px;
+.game-link{
 
-  font-weight:700;
+  color:#5865f2;
 
-  color:#5f687a;
+  font-weight:900;
 
-  margin-bottom:4px;
+  text-decoration:none;
+
+}
+
+.message.mine .game-link{
+
+  color:#fff;
+
+  text-decoration:underline;
+
 }
 
 .composer{
+
+  flex:none;
+
   display:flex;
 
-  gap:10px;
+  gap:9px;
 
   padding:
-    14px 7%;
+    13px 7%;
 
-  background:white;
+  background:#fff;
 
   border-top:
     1px solid
-    #e7eaf0;
+    #e8ebf0;
+
 }
 
-.composer button{
+.composer input{
+
+  flex:1;
+
+}
+
+.send{
+
   width:48px;
+
   border-radius:11px;
+
 }
 
-.right{
+
+/* =========================
+   右侧
+========================= */
+
+.info{
+
   width:280px;
-
-  background:white;
-
-  border-left:
-    1px solid
-    #e7eaf0;
 
   padding:20px;
 
+  background:#fff;
+
+  border-left:
+    1px solid
+    #e8ebf0;
+
   overflow:auto;
+
 }
 
-.box{
+.info-card{
+
+  padding:15px;
+
   border:
     1px solid
     #e7eaf0;
 
-  border-radius:12px;
+  border-radius:13px;
 
-  padding:14px;
+  margin-bottom:12px;
 
-  margin-bottom:10px;
 }
 
-.game-mention{
-  color:#5865f2;
+.info-card-title{
 
-  font-weight:800;
+  font-weight:900;
 
-  text-decoration:none;
 }
 
-.game-mention:hover{
-  text-decoration:underline;
+.info-card-text{
+
+  color:#8a92a0;
+
+  line-height:1.6;
+
+  font-size:13px;
+
 }
 
-/* 弹窗 */
+
+/* =========================
+   弹窗
+========================= */
 
 .modal{
+
   position:fixed;
 
   inset:0;
 
-  background:#11182766;
+  background:
+    rgba(15,20,30,.5);
 
   display:none;
 
-  place-items:center;
-
-  padding:20px;
-}
-
-.modal.show{
-  display:grid;
-}
-
-.actions{
-  display:flex;
-
-  gap:10px;
-}
-
-.actions>*{
-  flex:1;
-
-  padding:11px;
-
-  border-radius:10px;
-}
-
-/* 管理员 */
-
-.admin-list{
-  max-height:65vh;
-  overflow:auto;
-}
-
-.admin-user{
-  border:
-    1px solid
-    #e7eaf0;
-
-  border-radius:12px;
-
-  padding:12px;
-
-  margin:8px 0;
-}
-
-.line{
-  display:flex;
-
-  justify-content:space-between;
+  justify-content:center;
 
   align-items:center;
 
-  gap:10px;
+  padding:20px;
+
+  z-index:100;
+
 }
 
-.admin-user button{
+.modal.show{
+
+  display:flex;
+
+}
+
+.modal-card{
+
+  width:
+    min(700px,95vw);
+
+  max-height:
+    90vh;
+
+  overflow:auto;
+
+  background:#fff;
+
+  border-radius:18px;
+
+  padding:24px;
+
+  box-shadow:
+    0 30px 100px
+    rgba(0,0,0,.2);
+
+}
+
+.modal-head{
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:space-between;
+
+}
+
+.close{
+
+  border:0;
+
+  background:#f1f3f7;
+
+  width:35px;
+
+  height:35px;
+
+  border-radius:50%;
+
+}
+
+
+/* =========================
+   管理员
+========================= */
+
+.admin-user{
+
+  padding:13px;
+
+  border:
+    1px solid
+    #e6e9ef;
+
+  border-radius:12px;
+
+  margin-top:9px;
+
+}
+
+.admin-row{
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:space-between;
+
+  gap:10px;
+
+}
+
+.admin-name{
+
+  font-weight:900;
+
+}
+
+.admin-meta{
+
+  color:#8b93a1;
+
+  font-size:12px;
+
+  margin-top:3px;
+
+}
+
+.admin-actions{
+
+  display:flex;
+
+  gap:6px;
+
+  flex-wrap:wrap;
+
+  justify-content:flex-end;
+
+}
+
+.admin-actions button{
+
+  border:0;
+
   padding:
     8px 10px;
 
   border-radius:8px;
 
-  background:#eff1ff;
+  background:#eef0ff;
 
   color:#5865f2;
 
   font-weight:700;
 
-  margin:4px;
 }
 
-.danger{
-  background:#ffe8e8!important;
-  color:#c62828!important;
+.admin-actions .danger{
+
+  background:#ffe8e8;
+
+  color:#c62828;
+
 }
 
-.warn{
-  background:#fff4d8!important;
-  color:#9a6500!important;
+.admin-actions .warning{
+
+  background:#fff2cf;
+
+  color:#956500;
+
 }
 
-.tag{
-  font-size:11px;
+.badge{
 
-  background:#f0f2f7;
+  display:inline-block;
 
   padding:
     3px 7px;
 
-  border-radius:999px;
+  border-radius:20px;
 
-  color:#687184;
+  font-size:11px;
+
+  background:#f0f2f6;
+
+  color:#707887;
+
 }
 
-@media(max-width:900px){
 
-  .right{
+/* =========================
+   响应式
+========================= */
+
+@media(max-width:950px){
+
+  .info{
+
     display:none;
-  }
 
-  .side{
-    width:210px;
-  }
-
-  .msgs{
-    padding:
-      20px 4%;
   }
 
 }
 
-@media(max-width:600px){
+@media(max-width:650px){
 
-  .side{
-    width:76px;
-    padding:10px 8px;
+  .sidebar{
+
+    width:72px;
+
+    padding:8px;
+
   }
 
   .brand{
-    font-size:0;
-  }
-
-  .brand:after{
-    content:"简";
-
-    font-size:21px;
-  }
-
-  .nav{
-    font-size:0;
 
     text-align:center;
+
+    font-size:0;
+
   }
 
-  .sec{
+  .brand::after{
+
+    content:"简";
+
+    font-size:22px;
+
+  }
+
+  .nav-button{
+
+    text-align:center;
+
+    font-size:0;
+
+  }
+
+  .nav-button::first-letter{
+
+    font-size:20px;
+
+  }
+
+  .section-title{
+
     display:none;
+
   }
 
-  .item span{
+  .list-item span{
+
     display:none;
+
   }
 
-  .item{
+  .list-item{
+
     justify-content:center;
+
   }
 
-  .me div:not(.ava){
+  .profile-name,
+  .profile-status{
+
     display:none;
+
   }
 
-  .msgs{
+  .messages{
+
     padding:
       15px 3%;
+
   }
 
   .composer{
+
     padding:10px;
+
   }
 
 }
@@ -596,27 +923,37 @@ input:focus{
 
 </head>
 
+
 <body>
 
-<!-- ================= 登录 ================= -->
 
-<div id="auth" class="auth">
+<!-- ======================================================
+     登录
+====================================================== -->
 
-  <div class="card">
+<div
+  id="authPage"
+  class="auth"
+>
+
+  <div class="auth-card">
 
     <div class="logo">
       简聊
     </div>
 
-    <div class="muted">
-      简单、清爽、实时聊天
+    <div class="subtitle">
+      简洁 · 实时 · 好友 · 群聊
     </div>
+
 
     <!-- 登录 -->
 
-    <section id="login">
+    <div id="loginPanel">
 
-      <h2>登录</h2>
+      <h2 class="auth-title">
+        登录
+      </h2>
 
       <div class="field">
 
@@ -625,7 +962,9 @@ input:focus{
         </label>
 
         <input
-          id="lu"
+          id="loginUsername"
+          class="input"
+          autocomplete="username"
         >
 
       </div>
@@ -637,36 +976,39 @@ input:focus{
         </label>
 
         <input
-          id="lp"
+          id="loginPassword"
+          class="input"
           type="password"
+          autocomplete="current-password"
         >
 
       </div>
 
       <button
-        class="wide primary"
+        class="full primary"
         onclick="login()"
       >
         登录
       </button>
 
       <button
-        class="link"
+        class="switch"
         onclick="toggleAuth()"
       >
-        没有账号？注册
+        没有账号？立即注册
       </button>
 
-    </section>
+    </div>
+
 
     <!-- 注册 -->
 
-    <section
-      id="reg"
-      class="hide"
+    <div
+      id="registerPanel"
+      class="hidden"
     >
 
-      <h2>
+      <h2 class="auth-title">
         注册
       </h2>
 
@@ -677,7 +1019,9 @@ input:focus{
         </label>
 
         <input
-          id="ru"
+          id="registerUsername"
+          class="input"
+          autocomplete="username"
         >
 
       </div>
@@ -685,118 +1029,144 @@ input:focus{
       <div class="field">
 
         <label>
-          密码（至少6位）
+          密码
         </label>
 
         <input
-          id="rp"
+          id="registerPassword"
+          class="input"
           type="password"
+          autocomplete="new-password"
         >
 
       </div>
 
       <button
-        class="wide primary"
+        class="full primary"
         onclick="register()"
       >
         注册并进入
       </button>
 
       <button
-        class="link"
+        class="switch"
         onclick="toggleAuth()"
       >
         返回登录
       </button>
 
-    </section>
+    </div>
 
   </div>
 
 </div>
 
 
-<!-- ================= 主界面 ================= -->
+<!-- ======================================================
+     主界面
+====================================================== -->
 
 <div
   id="app"
-  class="app hide"
+  class="app hidden"
 >
+
 
   <!-- 左侧 -->
 
-  <aside class="side">
+  <aside class="sidebar">
 
     <div class="brand">
       简聊
     </div>
 
+
     <button
-      class="nav"
-      onclick="openChannel(
-        'public',
-        'public',
-        '公共聊天'
-      )"
+      class="nav-button"
+      onclick="
+        openChannel(
+          'public',
+          'public',
+          '公共频道'
+        )
+      "
     >
       💬 公共频道
     </button>
 
+
     <button
-      class="nav"
-      onclick="showModal('group')"
+      class="nav-button"
+      onclick="
+        showModal('createGroup')
+      "
     >
       ➕ 创建群聊
     </button>
 
+
     <button
-      class="nav"
-      onclick="showModal('join')"
+      class="nav-button"
+      onclick="
+        showModal('joinGroup')
+      "
     >
       🔗 加入群聊
     </button>
 
+
     <button
-      class="nav"
-      onclick="showModal('friend')"
+      class="nav-button"
+      onclick="
+        showModal('addFriend')
+      "
     >
       👤 添加好友
     </button>
 
+
     <button
-      id="adminNav"
-      class="nav admin-nav hide"
+      id="adminButton"
+      class="nav-button admin-button hidden"
       onclick="openAdmin()"
     >
       👑 管理员
     </button>
 
-    <div class="sec">
+
+    <div class="section-title">
       好友
     </div>
 
-    <div id="friends"></div>
+    <div id="friendList"></div>
 
-    <div class="sec">
+
+    <div class="section-title">
       我的群聊
     </div>
 
-    <div id="groups"></div>
+    <div id="groupList"></div>
 
-    <div class="me">
+
+    <div class="profile">
 
       <div
-        id="ua"
-        class="ava"
-      ></div>
+        id="myAvatar"
+        class="avatar"
+      >
+        ?
+      </div>
 
       <div>
 
-        <b id="un"></b>
+        <div
+          id="myName"
+          class="profile-name"
+        ></div>
 
         <div
-          id="ustate"
-          class="muted"
+          id="myStatus"
+          class="profile-status"
         >
           在线
         </div>
@@ -808,50 +1178,52 @@ input:focus{
   </aside>
 
 
-  <!-- 中间聊天 -->
+  <!-- 中间 -->
 
   <main class="main">
 
-    <div class="top">
+    <header class="header">
 
-      <span id="title">
-        公共聊天
+      <span id="channelTitle">
+        公共频道
       </span>
 
       <span class="online">
         ● 在线
       </span>
 
-    </div>
+    </header>
 
-    <div class="chat">
 
-      <div
-        id="msgs"
-        class="msgs"
-      ></div>
+    <section
+      id="messages"
+      class="messages"
+    ></section>
 
-      <div class="composer">
 
-        <input
-          id="text"
-          placeholder="输入消息，Enter发送"
-          onkeydown="
-          if(event.key==='Enter'&&!event.shiftKey){
+    <div class="composer">
+
+      <input
+        id="messageInput"
+        class="input"
+        placeholder="输入消息，Enter发送"
+        onkeydown="
+          if(
+            event.key === 'Enter' &&
+            !event.shiftKey
+          ){
             event.preventDefault();
-            send()
+            sendMessage();
           }
-          "
-        >
+        "
+      >
 
-        <button
-          class="primary"
-          onclick="send()"
-        >
-          ➤
-        </button>
-
-      </div>
+      <button
+        class="send primary"
+        onclick="sendMessage()"
+      >
+        ➤
+      </button>
 
     </div>
 
@@ -860,38 +1232,33 @@ input:focus{
 
   <!-- 右侧 -->
 
-  <aside class="right">
+  <aside class="info">
 
-    <div class="box">
+    <div class="info-card">
 
-      <b>
-        聊天信息
-      </b>
+      <div class="info-card-title">
+        💬 公共聊天
+      </div>
 
-      <p class="muted">
-        消息使用 PostgreSQL
-        保存，并通过 Socket.IO
-        实时推送。
+      <p class="info-card-text">
+        欢迎来到简聊公共频道。
+        你可以添加好友、创建群聊，
+        与其他用户进行私聊。
       </p>
 
     </div>
 
-    <div class="box">
 
-      <b>
-        特殊功能
-      </b>
+    <div class="info-card">
 
-      <p class="muted">
-        在公共频道发送：
-      </p>
+      <div class="info-card-title">
+        🎮 特殊链接
+      </div>
 
-      <b>
-        @地铁跑酷
-      </b>
-
-      <p class="muted">
-        点击后进入指定网站。
+      <p class="info-card-text">
+        在公共频道输入
+        <b>@地铁跑酷</b>
+        可以打开特殊网站。
       </p>
 
     </div>
@@ -901,64 +1268,86 @@ input:focus{
 </div>
 
 
-<!-- ================= 普通弹窗 ================= -->
+<!-- ======================================================
+     普通弹窗
+====================================================== -->
 
 <div
-  id="modal"
+  id="normalModal"
   class="modal"
 >
 
-  <div class="card">
+  <div class="modal-card">
 
-    <h3 id="mt"></h3>
+    <div class="modal-head">
+
+      <h2 id="modalTitle">
+        操作
+      </h2>
+
+      <button
+        class="close"
+        onclick="closeModal()"
+      >
+        ✕
+      </button>
+
+    </div>
+
 
     <div class="field">
 
-      <label id="ml"></label>
+      <label id="modalLabel">
+        内容
+      </label>
 
-      <input id="mi">
-
-    </div>
-
-    <div class="actions">
-
-      <button onclick="closeModal()">
-        取消
-      </button>
-
-      <button
-        class="primary"
-        onclick="confirmModal()"
+      <input
+        id="modalInput"
+        class="input"
       >
-        确定
-      </button>
 
     </div>
+
+
+    <button
+      class="full primary"
+      onclick="confirmModal()"
+    >
+      确定
+    </button>
 
   </div>
 
 </div>
 
 
-<!-- ================= 管理员 ================= -->
+<!-- ======================================================
+     管理员弹窗
+====================================================== -->
 
 <div
   id="adminModal"
   class="modal"
 >
 
-  <div
-    class="card"
-    style="width:min(700px,95vw)"
-  >
+  <div class="modal-card">
 
-    <div class="line">
+    <div class="modal-head">
 
-      <h2>
-        👑 管理员面板
-      </h2>
+      <div>
+
+        <h2>
+          👑 管理员面板
+        </h2>
+
+        <div class="admin-meta">
+          用户管理
+        </div>
+
+      </div>
 
       <button
+        class="close"
         onclick="closeAdmin()"
       >
         ✕
@@ -966,18 +1355,8 @@ input:focus{
 
     </div>
 
-    <div class="muted">
 
-      管理员可以禁言、
-      解除禁言、
-      封禁和解封普通用户。
-
-    </div>
-
-    <div
-      id="adminList"
-      class="admin-list"
-    ></div>
+    <div id="adminUsers"></div>
 
   </div>
 
@@ -986,36 +1365,77 @@ input:focus{
 
 <script>
 
-/* =========================
-   全局变量
-========================= */
+/* ======================================================
+   全局状态
+====================================================== */
 
 let token =
-  localStorage.getItem("token") || "";
+  localStorage.getItem(
+    "jiliao_token"
+  ) || "";
 
-let me = null;
-
-let channel = {
-  type:"public",
-  id:"public"
-};
+let currentUser = null;
 
 let socket = null;
 
-let modalType = null;
+let currentChannel = {
+
+  type:"public",
+
+  id:"public"
+
+};
+
+let modalType = "";
 
 
-/* =========================
+/* ======================================================
    DOM
-========================= */
+====================================================== */
 
-const $ = id =>
-  document.getElementById(id);
+function $(id){
+
+  return document.getElementById(id);
+
+}
 
 
-/* =========================
+/* ======================================================
+   HTML 转义
+====================================================== */
+
+function escapeHTML(value){
+
+  return String(value)
+    .replace(
+      /[&<>"']/g,
+      char => {
+
+        const map = {
+
+          "&":"&amp;",
+
+          "<":"&lt;",
+
+          ">":"&gt;",
+
+          '"':"&quot;",
+
+          "'":"&#039;"
+
+        };
+
+        return map[char];
+
+      }
+    );
+
+}
+
+
+/* ======================================================
    API
-========================= */
+====================================================== */
 
 async function api(
   url,
@@ -1024,19 +1444,21 @@ async function api(
 
   options.headers = {
 
-    "Content-Type":
-      "application/json",
-
     ...(options.headers || {}),
 
-    ...(token
-      ? {
-          Authorization:
-            "Bearer " + token
-        }
-      : {})
+    "Content-Type":
+      "application/json"
 
   };
+
+
+  if(token){
+
+    options.headers.Authorization =
+      "Bearer " + token;
+
+  }
+
 
   const response =
     await fetch(
@@ -1044,12 +1466,16 @@ async function api(
       options
     );
 
+
   const data =
     await response
       .json()
-      .catch(() => ({}));
+      .catch(
+        () => ({})
+      );
 
-  if (!response.ok){
+
+  if(!response.ok){
 
     throw new Error(
       data.error ||
@@ -1058,24 +1484,25 @@ async function api(
 
   }
 
+
   return data;
 
 }
 
 
-/* =========================
-   登录 / 注册
-========================= */
+/* ======================================================
+   登录/注册页面
+====================================================== */
 
 function toggleAuth(){
 
-  $("login")
+  $("loginPanel")
     .classList
-    .toggle("hide");
+    .toggle("hidden");
 
-  $("reg")
+  $("registerPanel")
     .classList
-    .toggle("hide");
+    .toggle("hidden");
 
 }
 
@@ -1084,30 +1511,45 @@ async function register(){
 
   try{
 
+    const username =
+      $("registerUsername")
+        .value
+        .trim();
+
+    const password =
+      $("registerPassword")
+        .value;
+
+
     const data =
       await api(
         "/api/register",
         {
+
           method:"POST",
 
-          body:JSON.stringify({
+          body:
+            JSON.stringify({
 
-            username:
-              $("ru").value,
+              username,
 
-            password:
-              $("rp").value
+              password
 
-          })
+            })
 
         }
       );
 
-    await enter(data);
+
+    await enterApp(
+      data
+    );
 
   }catch(error){
 
-    alert(error.message);
+    alert(
+      error.message
+    );
 
   }
 
@@ -1118,93 +1560,163 @@ async function login(){
 
   try{
 
+    const username =
+      $("loginUsername")
+        .value
+        .trim();
+
+    const password =
+      $("loginPassword")
+        .value;
+
+
     const data =
       await api(
         "/api/login",
         {
+
           method:"POST",
 
-          body:JSON.stringify({
+          body:
+            JSON.stringify({
 
-            username:
-              $("lu").value,
+              username,
 
-            password:
-              $("lp").value
+              password
 
-          })
+            })
 
         }
       );
 
-    await enter(data);
+
+    await enterApp(
+      data
+    );
 
   }catch(error){
 
-    alert(error.message);
+    alert(
+      error.message
+    );
 
   }
 
 }
 
 
-/* =========================
-   进入网站
-========================= */
+/* ======================================================
+   进入 App
+====================================================== */
 
-async function enter(data){
+async function enterApp(
+  data
+){
 
   token =
     data.token;
 
-  me =
+  currentUser =
     data.user;
 
+
   localStorage.setItem(
-    "token",
+    "jiliao_token",
     token
   );
 
-  $("auth")
+
+  $("authPage")
     .classList
-    .add("hide");
+    .add("hidden");
 
   $("app")
     .classList
-    .remove("hide");
+    .remove("hidden");
 
-  $("un")
+
+  $("myName")
     .textContent =
-    me.username;
+    currentUser.username;
 
-  $("ua")
+
+  $("myAvatar")
     .textContent =
-    me.username[0] || "?";
-
-  $("ustate")
-    .textContent =
-    me.is_muted
-      ? "已禁言"
-      : "在线";
+    currentUser.username[0]
+    || "?";
 
 
-  if(me.is_admin){
+  updateMyStatus();
 
-    $("adminNav")
+
+  if(currentUser.is_admin){
+
+    $("adminButton")
       .classList
-      .remove("hide");
+      .remove("hidden");
 
   }
 
 
-  /* Socket.IO */
+  connectSocket();
+
+  await loadSidebar();
+
+  await openChannel(
+    "public",
+    "public",
+    "公共频道"
+  );
+
+}
+
+
+/* ======================================================
+   状态
+====================================================== */
+
+function updateMyStatus(){
+
+  $("myStatus")
+    .textContent =
+    currentUser.is_muted
+      ? "🔇 已禁言"
+      : "● 在线";
+
+}
+
+
+/* ======================================================
+   Socket.IO
+====================================================== */
+
+function connectSocket(){
 
   socket =
     io({
+
       auth:{
         token
       }
+
     });
+
+
+  socket.on(
+    "connect",
+    () => {
+
+      console.log(
+        "Socket connected"
+      );
+
+      socket.emit(
+        "join",
+        currentChannel
+      );
+
+    }
+  );
 
 
   socket.on(
@@ -1213,17 +1725,17 @@ async function enter(data){
 
       if(
         message.channel_type ===
-        channel.type &&
+        currentChannel.type &&
 
         String(
           message.channel_id
         ) ===
         String(
-          channel.id
+          currentChannel.id
         )
       ){
 
-        draw(
+        renderMessages(
           [message],
           true
         );
@@ -1236,38 +1748,49 @@ async function enter(data){
 
   socket.on(
     "user_moderated",
-    data => {
+    event => {
 
       if(
-        data.userId === me.id
+        event.userId !==
+        currentUser.id
       ){
 
-        if(
-          data.field ===
-          "is_banned" &&
-          data.value
-        ){
+        return;
 
-          alert(
-            "你的账号已被封禁"
-          );
+      }
 
-          logout();
 
-        }
+      if(
+        event.field ===
+        "is_muted"
+      ){
 
-        if(
-          data.field ===
-          "is_muted"
-        ){
+        currentUser.is_muted =
+          event.value;
 
-          $("ustate")
-            .textContent =
-            data.value
-              ? "已禁言"
-              : "在线";
+        updateMyStatus();
 
-        }
+
+        alert(
+          event.value
+            ? "你已被管理员禁言"
+            : "你已解除禁言"
+        );
+
+      }
+
+
+      if(
+        event.field ===
+        "is_banned" &&
+        event.value
+      ){
+
+        alert(
+          "你的账号已被管理员封禁"
+        );
+
+        logout();
 
       }
 
@@ -1275,65 +1798,128 @@ async function enter(data){
   );
 
 
-  await sidebar();
+  socket.on(
+    "connect_error",
+    error => {
 
-  await openChannel(
-    "public",
-    "public",
-    "公共聊天"
+      console.error(
+        "Socket error:",
+        error.message
+      );
+
+    }
   );
 
 }
 
 
-/* =========================
-   侧边栏
-========================= */
+/* ======================================================
+   加载侧边栏
+====================================================== */
 
-async function sidebar(){
+async function loadSidebar(){
 
-  const [
-    friends,
-    groups
-  ] =
-    await Promise.all([
+  try{
 
-      api(
+    const friends =
+      await api(
         "/api/friends"
-      ),
+      );
 
-      api(
+    const groups =
+      await api(
         "/api/groups"
-      )
-
-    ]);
+      );
 
 
-  $("friends")
+    renderFriends(
+      friends
+    );
+
+    renderGroups(
+      groups
+    );
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+/* ======================================================
+   好友
+====================================================== */
+
+function renderFriends(
+  friends
+){
+
+  $("friendList")
     .innerHTML =
-    friends
-      .map(
-        friend => `
+    "";
+
+
+  if(
+    friends.length === 0
+  ){
+
+    $("friendList")
+      .innerHTML = `
+        <div
+          style="
+            color:#9aa1ae;
+            padding:8px;
+            font-size:12px;
+          "
+        >
+          暂无好友
+        </div>
+      `;
+
+    return;
+
+  }
+
+
+  for(
+    const friend
+    of friends
+  ){
+
+    $("friendList")
+      .insertAdjacentHTML(
+        "beforeend",
+
+        `
 
         <div
-          class="item"
-          onclick='openChannel(
-            "private",
-            "${friend.id}",
-            "与 ${escapeHtml(
-              friend.username
-            )} 私聊"
-          )'
+          class="list-item"
+          onclick="
+            openChannel(
+              'private',
+              '${friend.id}',
+              '与 ${escapeHTML(
+                friend.username
+              )} 私聊'
+            )
+          "
         >
 
-          <div class="ava">
-            ${escapeHtml(
+          <div class="avatar">
+
+            ${escapeHTML(
               friend.username[0] || "?"
             )}
+
           </div>
 
           <span>
-            ${escapeHtml(
+            ${escapeHTML(
               friend.username
             )}
           </span>
@@ -1341,33 +1927,79 @@ async function sidebar(){
         </div>
 
         `
-      )
-      .join("");
+
+      );
+
+  }
+
+}
 
 
-  $("groups")
+/* ======================================================
+   群聊
+====================================================== */
+
+function renderGroups(
+  groups
+){
+
+  $("groupList")
     .innerHTML =
-    groups
-      .map(
-        group => `
+    "";
+
+
+  if(
+    groups.length === 0
+  ){
+
+    $("groupList")
+      .innerHTML = `
+        <div
+          style="
+            color:#9aa1ae;
+            padding:8px;
+            font-size:12px;
+          "
+        >
+          暂无群聊
+        </div>
+      `;
+
+    return;
+
+  }
+
+
+  for(
+    const group
+    of groups
+  ){
+
+    $("groupList")
+      .insertAdjacentHTML(
+        "beforeend",
+
+        `
 
         <div
-          class="item"
-          onclick='openChannel(
-            "group",
-            "${group.id}",
-            "# ${escapeHtml(
-              group.name
-            )}"
-          )'
+          class="list-item"
+          onclick="
+            openChannel(
+              'group',
+              '${group.id}',
+              '# ${escapeHTML(
+                group.name
+              )}'
+            )
+          "
         >
 
-          <div class="ava">
+          <div class="avatar">
             #
           </div>
 
           <span>
-            ${escapeHtml(
+            ${escapeHTML(
               group.name
             )}
           </span>
@@ -1375,68 +2007,17 @@ async function sidebar(){
         </div>
 
         `
-      )
-      .join("");
+
+      );
+
+  }
 
 }
 
 
-/* =========================
-   HTML 转义
-========================= */
-
-function escapeHtml(value){
-
-  return String(value)
-    .replace(
-      /[&<>"']/g,
-      character => {
-
-        const map = {
-
-          "&":"&amp;",
-          "<":"&lt;",
-          ">":"&gt;",
-          '"':"&quot;",
-          "'":"&#39;"
-
-        };
-
-        return map[
-          character
-        ];
-
-      }
-    );
-
-}
-
-
-/* =========================
-   地铁跑酷特殊 @
-========================= */
-
-function renderMessage(text){
-
-  return escapeHtml(text)
-    .replace(
-      /@地铁跑酷/g,
-
-      `<a
-        class="game-mention"
-        href="https://subwaysurfers3dbyzjp.netlify.app/"
-        target="_blank"
-        rel="noopener noreferrer"
-      >@地铁跑酷</a>`
-
-    );
-
-}
-
-
-/* =========================
-   打开频道
-========================= */
+/* ======================================================
+   打开聊天
+====================================================== */
 
 async function openChannel(
   type,
@@ -1444,7 +2025,7 @@ async function openChannel(
   title
 ){
 
-  channel = {
+  currentChannel = {
 
     type,
 
@@ -1452,7 +2033,8 @@ async function openChannel(
 
   };
 
-  $("title")
+
+  $("channelTitle")
     .textContent =
     title;
 
@@ -1461,7 +2043,7 @@ async function openChannel(
 
     socket.emit(
       "join",
-      channel
+      currentChannel
     );
 
   }
@@ -1474,7 +2056,8 @@ async function openChannel(
         `/api/messages?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`
       );
 
-    draw(
+
+    renderMessages(
       messages,
       false
     );
@@ -1490,18 +2073,55 @@ async function openChannel(
 }
 
 
-/* =========================
-   显示消息
-========================= */
+/* ======================================================
+   消息特殊渲染
+====================================================== */
 
-function draw(
+function renderText(
+  text
+){
+
+  let result =
+    escapeHTML(
+      text
+    );
+
+
+  /*
+   * @地铁跑酷
+   */
+
+  result =
+    result.replace(
+      /@地铁跑酷/g,
+
+      `<a
+        class="game-link"
+        href="https://subwaysurfers3dbyzjp.netlify.app/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >@地铁跑酷</a>`
+
+    );
+
+
+  return result;
+
+}
+
+
+/* ======================================================
+   消息列表
+====================================================== */
+
+function renderMessages(
   messages,
   append
 ){
 
   if(!append){
 
-    $("msgs")
+    $("messages")
       .innerHTML =
       "";
 
@@ -1514,21 +2134,30 @@ function draw(
   ){
 
     const mine =
-      message.user_id === me.id;
+      Number(
+        message.user_id
+      ) ===
+      Number(
+        currentUser.id
+      );
 
-    $("msgs")
+
+    $("messages")
       .insertAdjacentHTML(
         "beforeend",
 
         `
 
         <div
-          class="msg ${mine ? "mine" : ""}"
+          class="
+            message
+            ${mine ? "mine" : ""}
+          "
         >
 
-          <div class="ava">
+          <div class="avatar">
 
-            ${escapeHtml(
+            ${escapeHTML(
               (
                 message.username ||
                 "?"
@@ -1537,19 +2166,21 @@ function draw(
 
           </div>
 
-          <div>
 
-            <div class="nm">
+          <div class="message-content">
 
-              ${escapeHtml(
+            <div class="message-name">
+
+              ${escapeHTML(
                 message.username
               )}
 
             </div>
 
-            <div class="bubble">
 
-              ${renderMessage(
+            <div class="message-bubble">
+
+              ${renderText(
                 message.text
               )}
 
@@ -1566,27 +2197,33 @@ function draw(
   }
 
 
-  $("msgs")
+  $("messages")
     .scrollTop =
-    $("msgs")
+    $("messages")
       .scrollHeight;
 
 }
 
 
-/* =========================
+/* ======================================================
    发送消息
-========================= */
+====================================================== */
 
-async function send(){
+async function sendMessage(){
+
+  const input =
+    $("messageInput");
+
 
   const text =
-    $("text")
-      .value
-      .trim();
+    input.value.trim();
 
-  if(!text)
+
+  if(!text){
+
     return;
+
+  }
 
 
   try{
@@ -1594,22 +2231,30 @@ async function send(){
     await api(
       "/api/messages",
       {
+
         method:"POST",
 
-        body:JSON.stringify({
+        body:
+          JSON.stringify({
 
-          ...channel,
+            type:
+              currentChannel.type,
 
-          text
+            id:
+              currentChannel.id,
 
-        })
+            text
+
+          })
 
       }
     );
 
-    $("text")
-      .value =
+
+    input.value =
       "";
+
+    input.focus();
 
   }catch(error){
 
@@ -1622,53 +2267,92 @@ async function send(){
 }
 
 
-/* =========================
+/* ======================================================
    普通弹窗
-========================= */
+====================================================== */
 
-function showModal(type){
+function showModal(
+  type
+){
 
   modalType =
     type;
 
-  $("modal")
+
+  $("normalModal")
     .classList
     .add("show");
 
-  $("mi")
+
+  $("modalInput")
     .value =
     "";
 
 
-  const data = {
+  const configs = {
 
-    friend:[
-      "添加好友",
-      "好友用户名"
-    ],
+    addFriend:{
 
-    group:[
-      "创建群聊",
-      "群名称"
-    ],
+      title:
+        "添加好友",
 
-    join:[
-      "加入群聊",
-      "邀请码"
-    ]
+      label:
+        "输入好友用户名",
 
-  }[type];
+      placeholder:
+        "例如：Tom"
+
+    },
+
+    createGroup:{
+
+      title:
+        "创建群聊",
+
+      label:
+        "输入群名称",
+
+      placeholder:
+        "例如：游戏交流群"
+
+    },
+
+    joinGroup:{
+
+      title:
+        "加入群聊",
+
+      label:
+        "输入邀请码",
+
+      placeholder:
+        "例如：A8C21F..."
+
+    }
+
+  };
 
 
-  $("mt")
+  const config =
+    configs[type];
+
+
+  $("modalTitle")
     .textContent =
-    data[0];
+    config.title;
 
-  $("ml")
+
+  $("modalLabel")
     .textContent =
-    data[1];
+    config.label;
 
-  $("mi")
+
+  $("modalInput")
+    .placeholder =
+    config.placeholder;
+
+
+  $("modalInput")
     .focus();
 
 }
@@ -1676,7 +2360,7 @@ function showModal(type){
 
 function closeModal(){
 
-  $("modal")
+  $("normalModal")
     .classList
     .remove("show");
 
@@ -1686,9 +2370,10 @@ function closeModal(){
 async function confirmModal(){
 
   const value =
-    $("mi")
+    $("modalInput")
       .value
       .trim();
+
 
   if(!value){
 
@@ -1705,45 +2390,60 @@ async function confirmModal(){
 
     if(
       modalType ===
-      "friend"
+      "addFriend"
     ){
 
       await api(
         "/api/friends",
         {
+
           method:"POST",
 
-          body:JSON.stringify({
-            username:value
-          })
+          body:
+            JSON.stringify({
+
+              username:value
+
+            })
 
         }
       );
 
-      await sidebar();
+
+      await loadSidebar();
+
+      alert(
+        "添加好友成功"
+      );
 
     }
 
 
     if(
       modalType ===
-      "group"
+      "createGroup"
     ){
 
       const group =
         await api(
           "/api/groups",
           {
+
             method:"POST",
 
-            body:JSON.stringify({
-              name:value
-            })
+            body:
+              JSON.stringify({
+
+                name:value
+
+              })
 
           }
         );
 
-      await sidebar();
+
+      await loadSidebar();
+
 
       await openChannel(
         "group",
@@ -1751,8 +2451,10 @@ async function confirmModal(){
         "# " + group.name
       );
 
+
       alert(
-        "创建成功！\n\n邀请码：" +
+        "群聊创建成功\n\n" +
+        "邀请码：\n" +
         group.invite_code
       );
 
@@ -1761,28 +2463,39 @@ async function confirmModal(){
 
     if(
       modalType ===
-      "join"
+      "joinGroup"
     ){
 
       const group =
         await api(
           "/api/groups/join",
           {
+
             method:"POST",
 
-            body:JSON.stringify({
-              inviteCode:value
-            })
+            body:
+              JSON.stringify({
+
+                inviteCode:value
+
+              })
 
           }
         );
 
-      await sidebar();
+
+      await loadSidebar();
+
 
       await openChannel(
         "group",
         group.id,
         "# " + group.name
+      );
+
+
+      alert(
+        "加入群聊成功"
       );
 
     }
@@ -1801,9 +2514,9 @@ async function confirmModal(){
 }
 
 
-/* =========================
+/* ======================================================
    管理员
-========================= */
+====================================================== */
 
 async function openAdmin(){
 
@@ -1811,7 +2524,8 @@ async function openAdmin(){
     .classList
     .add("show");
 
-  await refreshAdmin();
+
+  await loadAdminUsers();
 
 }
 
@@ -1825,7 +2539,7 @@ function closeAdmin(){
 }
 
 
-async function refreshAdmin(){
+async function loadAdminUsers(){
 
   try{
 
@@ -1835,142 +2549,166 @@ async function refreshAdmin(){
       );
 
 
-    $("adminList")
+    $("adminUsers")
       .innerHTML =
-      users
-        .map(
-          user => {
+      "";
 
-            if(
-              user.is_admin
-            ){
 
-              return `
+    for(
+      const user
+      of users
+    ){
 
-              <div class="admin-user">
+      if(user.is_admin){
 
-                <b>
-                  👑
-                  ${escapeHtml(
-                    user.username
-                  )}
-                </b>
+        $("adminUsers")
+          .insertAdjacentHTML(
+            "beforeend",
 
-                <span class="tag">
+            `
+
+            <div class="admin-user">
+
+              <div class="admin-name">
+
+                👑
+                ${escapeHTML(
+                  user.username
+                )}
+
+                <span class="badge">
                   管理员
                 </span>
 
               </div>
 
-              `;
+            </div>
 
-            }
+            `
+
+          );
+
+        continue;
+
+      }
 
 
-            return `
+      const muteText =
+        user.is_muted
+          ? "解除禁言"
+          : "禁言";
 
-            <div class="admin-user">
 
-              <div class="line">
+      const banText =
+        user.is_banned
+          ? "解封"
+          : "封禁";
 
-                <div>
 
-                  <b>
-                    ${escapeHtml(
-                      user.username
-                    )}
-                  </b>
+      $("adminUsers")
+        .insertAdjacentHTML(
+          "beforeend",
 
-                  <div class="muted">
+          `
 
-                    ID ${user.id}
+          <div class="admin-user">
 
-                    ${
-                      user.is_muted
-                      ? " · 🔇 已禁言"
-                      : ""
-                    }
+            <div class="admin-row">
 
-                    ${
-                      user.is_banned
-                      ? " · 🚫 已封禁"
-                      : ""
-                    }
+              <div>
 
-                  </div>
+                <div class="admin-name">
+
+                  ${escapeHTML(
+                    user.username
+                  )}
 
                 </div>
 
+                <div class="admin-meta">
 
-                <div>
+                  ID：
+                  ${user.id}
 
-                  <button
-                    class="${
-                      user.is_muted
-                        ? "warn"
-                        : ""
-                    }"
+                  ${
+                    user.is_muted
+                      ? " · 🔇 已禁言"
+                      : ""
+                  }
 
-                    onclick="
-                      moderate(
-                        ${user.id},
-                        '${
-                          user.is_muted
-                            ? "unmute"
-                            : "mute"
-                        }'
-                      )
-                    "
-                  >
-
-                    ${
-                      user.is_muted
-                        ? "解除禁言"
-                        : "禁言"
-                    }
-
-                  </button>
-
-
-                  <button
-                    class="${
-                      user.is_banned
-                        ? "primary"
-                        : "danger"
-                    }"
-
-                    onclick="
-                      moderate(
-                        ${user.id},
-                        '${
-                          user.is_banned
-                            ? "unban"
-                            : "ban"
-                        }'
-                      )
-                    "
-                  >
-
-                    ${
-                      user.is_banned
-                        ? "解封"
-                        : "封禁"
-                    }
-
-                  </button>
+                  ${
+                    user.is_banned
+                      ? " · 🚫 已封禁"
+                      : ""
+                  }
 
                 </div>
 
               </div>
 
+
+              <div class="admin-actions">
+
+                <button
+                  class="
+                    ${
+                      user.is_muted
+                        ? "warning"
+                        : ""
+                    }
+                  "
+                  onclick="
+                    moderate(
+                      ${user.id},
+                      '${
+                        user.is_muted
+                          ? "unmute"
+                          : "mute"
+                      }'
+                    )
+                  "
+                >
+
+                  ${muteText}
+
+                </button>
+
+
+                <button
+                  class="
+                    ${
+                      user.is_banned
+                        ? ""
+                        : "danger"
+                    }
+                  "
+                  onclick="
+                    moderate(
+                      ${user.id},
+                      '${
+                        user.is_banned
+                          ? "unban"
+                          : "ban"
+                      }'
+                    )
+                  "
+                >
+
+                  ${banText}
+
+                </button>
+
+              </div>
+
             </div>
 
-            `;
+          </div>
 
-          }
-        )
-        .join("");
+          `
 
+        );
+
+    }
 
   }catch(error){
 
@@ -1983,9 +2721,9 @@ async function refreshAdmin(){
 }
 
 
-/* =========================
-   管理员操作
-========================= */
+/* ======================================================
+   管理操作
+====================================================== */
 
 async function moderate(
   id,
@@ -1994,20 +2732,24 @@ async function moderate(
 
   const names = {
 
-    mute:"禁言",
+    mute:
+      "禁言",
 
-    unmute:"解除禁言",
+    unmute:
+      "解除禁言",
 
-    ban:"封禁",
+    ban:
+      "封禁",
 
-    unban:"解封"
+    unban:
+      "解封"
 
   };
 
 
   if(
     !confirm(
-      `确定要${names[action]}这个用户吗？`
+      `确定要${names[action]}该用户吗？`
     )
   ){
 
@@ -2021,11 +2763,14 @@ async function moderate(
     await api(
       `/api/admin/users/${id}/${action}`,
       {
+
         method:"POST"
+
       }
     );
 
-    await refreshAdmin();
+
+    await loadAdminUsers();
 
   }catch(error){
 
@@ -2038,50 +2783,85 @@ async function moderate(
 }
 
 
-/* =========================
+/* ======================================================
    退出
-========================= */
+====================================================== */
 
 function logout(){
 
   localStorage.removeItem(
-    "token"
+    "jiliao_token"
   );
+
+  token = "";
+
+  currentUser = null;
+
+
+  if(socket){
+
+    socket.disconnect();
+
+  }
+
 
   location.reload();
 
 }
 
 
-/* =========================
+/* ======================================================
    自动登录
-========================= */
+====================================================== */
 
-if(token){
+async function autoLogin(){
 
-  api("/api/me")
+  if(!token){
 
-    .then(
-      data =>
-        enter({
-          token,
-          user:data.user
-        })
-    )
+    return;
 
-    .catch(
-      () => {
+  }
 
-        localStorage.removeItem(
-          "token"
-        );
 
-        token = "";
+  try{
 
-      }
+    const data =
+      await api(
+        "/api/me"
+      );
+
+
+    await enterApp({
+
+      token,
+
+      user:
+        data.user
+
+    });
+
+  }catch(error){
+
+    console.log(
+      "自动登录失败"
     );
 
+    localStorage.removeItem(
+      "jiliao_token"
+    );
+
+    token = "";
+
+  }
+
 }
+
+
+/* ======================================================
+   启动
+====================================================== */
+
+autoLogin();
 
 </script>
 
