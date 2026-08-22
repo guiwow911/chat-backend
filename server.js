@@ -13,25 +13,37 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*"
+    origin: "*",
+    methods: ["GET", "POST"]
   }
 });
 
 const PORT = Number(process.env.PORT || 10000);
 
 const JWT_SECRET =
-  process.env.JWT_SECRET || "CHANGE_THIS_SECRET";
+  process.env.JWT_SECRET ||
+  "PLEASE_CHANGE_THIS_SECRET";
 
 if (!process.env.DATABASE_URL) {
-  console.error("DATABASE_URL 未设置");
+  console.error("=================================");
+  console.error("DATABASE_URL 没有设置");
+  console.error("请在 Render Environment 中添加");
+  console.error("DATABASE_URL");
+  console.error("=================================");
+
   process.exit(1);
 }
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+
   ssl: {
     rejectUnauthorized: false
   }
+});
+
+pool.on("error", error => {
+  console.error("PostgreSQL Pool Error:", error);
 });
 
 app.use(express.json({
@@ -40,139 +52,343 @@ app.use(express.json({
 
 app.use(express.static("public"));
 
+/* =========================================================
+   数据库工具
+========================================================= */
+
 async function db(sql, params = []) {
-  const result = await pool.query(sql, params);
+  const result = await pool.query(
+    sql,
+    params
+  );
+
   return result.rows;
 }
 
-/* =========================
-   数据库初始化
-========================= */
+/* =========================================================
+   数据库初始化 + 自动迁移旧数据库
+========================================================= */
 
 async function initDatabase() {
+
+  console.log("正在初始化数据库...");
+
+  /*
+   * users
+   */
 
   await db(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
-      username VARCHAR(32) UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
 
-      is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-      is_muted BOOLEAN NOT NULL DEFAULT FALSE,
-      is_banned BOOLEAN NOT NULL DEFAULT FALSE,
+      username VARCHAR(32)
+        UNIQUE NOT NULL,
 
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      password_hash TEXT
+        NOT NULL,
+
+      is_admin BOOLEAN
+        NOT NULL DEFAULT FALSE,
+
+      is_muted BOOLEAN
+        NOT NULL DEFAULT FALSE,
+
+      is_banned BOOLEAN
+        NOT NULL DEFAULT FALSE,
+
+      created_at TIMESTAMPTZ
+        NOT NULL DEFAULT NOW()
     );
   `);
+
+
+  /*
+   * 重要：
+   * 如果 Render 连接的是以前的数据库，
+   * 上面的 CREATE TABLE IF NOT EXISTS
+   * 不会自动增加字段。
+   *
+   * 所以这里进行数据库迁移。
+   */
+
+  await db(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_admin
+    BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+
+  await db(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_muted
+    BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+
+  await db(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_banned
+    BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+
+  await db(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS created_at
+    TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  `);
+
+
+  /*
+   * friendships
+   */
 
   await db(`
     CREATE TABLE IF NOT EXISTS friendships (
-      user_id INT REFERENCES users(id) ON DELETE CASCADE,
-      friend_id INT REFERENCES users(id) ON DELETE CASCADE,
 
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      user_id INT
+        REFERENCES users(id)
+        ON DELETE CASCADE,
 
-      PRIMARY KEY(user_id, friend_id)
+      friend_id INT
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+      created_at TIMESTAMPTZ
+        NOT NULL DEFAULT NOW(),
+
+      PRIMARY KEY (
+        user_id,
+        friend_id
+      )
     );
   `);
+
+
+  /*
+   * groups
+   */
 
   await db(`
     CREATE TABLE IF NOT EXISTS groups_chat (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(80) NOT NULL,
-      invite_code VARCHAR(16) UNIQUE NOT NULL,
 
-      owner_id INT REFERENCES users(id)
+      id SERIAL PRIMARY KEY,
+
+      name VARCHAR(80)
+        NOT NULL,
+
+      invite_code VARCHAR(32)
+        UNIQUE NOT NULL,
+
+      owner_id INT
+        REFERENCES users(id)
         ON DELETE CASCADE,
 
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      created_at TIMESTAMPTZ
+        NOT NULL DEFAULT NOW()
     );
   `);
+
+
+  /*
+   * group members
+   */
 
   await db(`
     CREATE TABLE IF NOT EXISTS group_members (
-      group_id INT REFERENCES groups_chat(id)
+
+      group_id INT
+        REFERENCES groups_chat(id)
         ON DELETE CASCADE,
 
-      user_id INT REFERENCES users(id)
+      user_id INT
+        REFERENCES users(id)
         ON DELETE CASCADE,
 
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ
+        NOT NULL DEFAULT NOW(),
 
-      PRIMARY KEY(group_id, user_id)
+      PRIMARY KEY (
+        group_id,
+        user_id
+      )
     );
   `);
+
+
+  /*
+   * messages
+   */
 
   await db(`
     CREATE TABLE IF NOT EXISTS messages (
+
       id BIGSERIAL PRIMARY KEY,
 
-      channel_type VARCHAR(20) NOT NULL,
-      channel_id VARCHAR(120) NOT NULL,
+      channel_type VARCHAR(20)
+        NOT NULL,
 
-      user_id INT REFERENCES users(id)
+      channel_id VARCHAR(120)
+        NOT NULL,
+
+      user_id INT
+        REFERENCES users(id)
         ON DELETE CASCADE,
 
-      text TEXT NOT NULL,
+      text TEXT
+        NOT NULL,
 
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      created_at TIMESTAMPTZ
+        NOT NULL DEFAULT NOW()
     );
   `);
 
+
+  /*
+   * 如果旧数据库存在 messages，
+   * 也确保字段存在。
+   */
+
   await db(`
-    CREATE INDEX IF NOT EXISTS messages_channel_idx
-    ON messages(channel_type, channel_id, id);
+    ALTER TABLE messages
+    ADD COLUMN IF NOT EXISTS channel_type
+    VARCHAR(20);
   `);
+
+  await db(`
+    ALTER TABLE messages
+    ADD COLUMN IF NOT EXISTS channel_id
+    VARCHAR(120);
+  `);
+
+  await db(`
+    ALTER TABLE messages
+    ADD COLUMN IF NOT EXISTS user_id
+    INT;
+  `);
+
+  await db(`
+    ALTER TABLE messages
+    ADD COLUMN IF NOT EXISTS text
+    TEXT;
+  `);
+
+  await db(`
+    ALTER TABLE messages
+    ADD COLUMN IF NOT EXISTS created_at
+    TIMESTAMPTZ
+    NOT NULL DEFAULT NOW();
+  `);
+
+
+  /*
+   * 索引
+   */
+
+  await db(`
+    CREATE INDEX IF NOT EXISTS
+    messages_channel_idx
+
+    ON messages (
+      channel_type,
+      channel_id,
+      id
+    );
+  `);
+
 
   console.log("数据库初始化完成");
 }
 
-/* =========================
+/* =========================================================
    自动创建管理员
-========================= */
+========================================================= */
 
 async function ensureAdmin() {
 
   const username =
-    String(process.env.ADMIN_USERNAME || "").trim();
+    String(
+      process.env.ADMIN_USERNAME || ""
+    ).trim();
 
   const password =
-    String(process.env.ADMIN_PASSWORD || "");
+    String(
+      process.env.ADMIN_PASSWORD || ""
+    );
 
   if (!username || !password) {
 
     console.log(
-      "没有配置 ADMIN_USERNAME / ADMIN_PASSWORD"
+      "ADMIN_USERNAME / ADMIN_PASSWORD 未设置"
+    );
+
+    console.log(
+      "不会自动创建管理员"
     );
 
     return;
   }
 
-  const users = await db(
-    "SELECT id FROM users WHERE username=$1",
-    [username]
-  );
 
-  if (users.length) {
+  const users =
+    await db(
+      `
+      SELECT
+        id,
+        username,
+        is_admin
+
+      FROM users
+
+      WHERE username = $1
+      `,
+      [
+        username
+      ]
+    );
+
+
+  if (users.length > 0) {
 
     await db(
-      "UPDATE users SET is_admin=TRUE WHERE id=$1",
-      [users[0].id]
+      `
+      UPDATE users
+
+      SET is_admin = TRUE
+
+      WHERE id = $1
+      `,
+      [
+        users[0].id
+      ]
     );
 
-    console.log("管理员权限已确认");
+    console.log(
+      "管理员权限已确认:",
+      username
+    );
 
     return;
   }
 
+
   const hash =
-    await bcrypt.hash(password, 12);
+    await bcrypt.hash(
+      password,
+      12
+    );
+
 
   await db(
     `
-    INSERT INTO users
-    (username,password_hash,is_admin)
-    VALUES($1,$2,TRUE)
+    INSERT INTO users (
+      username,
+      password_hash,
+      is_admin
+    )
+
+    VALUES (
+      $1,
+      $2,
+      TRUE
+    )
     `,
     [
       username,
@@ -180,15 +396,16 @@ async function ensureAdmin() {
     ]
   );
 
+
   console.log(
     "管理员账号创建成功:",
     username
   );
 }
 
-/* =========================
+/* =========================================================
    JWT
-========================= */
+========================================================= */
 
 function createToken(user) {
 
@@ -206,9 +423,40 @@ function createToken(user) {
   );
 }
 
-/* =========================
+
+/* =========================================================
+   获取用户
+========================================================= */
+
+async function getUser(id) {
+
+  const users =
+    await db(
+      `
+      SELECT
+        id,
+        username,
+        is_admin,
+        is_muted,
+        is_banned,
+        created_at
+
+      FROM users
+
+      WHERE id = $1
+      `,
+      [
+        id
+      ]
+    );
+
+  return users[0] || null;
+}
+
+
+/* =========================================================
    登录验证
-========================= */
+========================================================= */
 
 function auth(req, res, next) {
 
@@ -225,6 +473,7 @@ function auth(req, res, next) {
         ""
       );
 
+
     if (!token) {
 
       return res.status(401).json({
@@ -233,51 +482,29 @@ function auth(req, res, next) {
 
     }
 
+
     req.user =
       jwt.verify(
         token,
         JWT_SECRET
       );
 
+
     next();
 
   } catch {
 
-    res.status(401).json({
-      error: "登录已过期"
+    return res.status(401).json({
+      error: "登录已过期，请重新登录"
     });
 
   }
 }
 
-/* =========================
-   获取用户
-========================= */
 
-async function getUser(id) {
-
-  const users = await db(
-    `
-    SELECT
-      id,
-      username,
-      is_admin,
-      is_muted,
-      is_banned
-
-    FROM users
-
-    WHERE id=$1
-    `,
-    [id]
-  );
-
-  return users[0] || null;
-}
-
-/* =========================
+/* =========================================================
    管理员验证
-========================= */
+========================================================= */
 
 async function requireAdmin(
   req,
@@ -285,25 +512,51 @@ async function requireAdmin(
   next
 ) {
 
-  const user =
-    await getUser(req.user.id);
+  try {
 
-  if (!user?.is_admin) {
+    const user =
+      await getUser(
+        req.user.id
+      );
 
-    return res.status(403).json({
-      error: "需要管理员权限"
+
+    if (!user) {
+
+      return res.status(401).json({
+        error: "用户不存在"
+      });
+
+    }
+
+
+    if (!user.is_admin) {
+
+      return res.status(403).json({
+        error: "需要管理员权限"
+      });
+
+    }
+
+
+    req.admin = user;
+
+    next();
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "权限检查失败"
     });
 
   }
-
-  req.admin = user;
-
-  next();
 }
 
-/* =========================
+
+/* =========================================================
    注册
-========================= */
+========================================================= */
 
 app.post(
   "/api/register",
@@ -321,6 +574,7 @@ app.post(
           req.body.password || ""
         );
 
+
       if (
         !/^[A-Za-z0-9_\u4e00-\u9fa5]{2,32}$/
           .test(username)
@@ -328,18 +582,44 @@ app.post(
 
         return res.status(400).json({
           error:
-            "用户名只能包含中文、英文、数字和下划线"
+            "用户名需要2-32个字符，只能使用中文、英文、数字和下划线"
         });
 
       }
+
 
       if (password.length < 6) {
 
         return res.status(400).json({
-          error: "密码至少6位"
+          error: "密码至少需要6位"
         });
 
       }
+
+
+      const existing =
+        await db(
+          `
+          SELECT id
+
+          FROM users
+
+          WHERE username = $1
+          `,
+          [
+            username
+          ]
+        );
+
+
+      if (existing.length) {
+
+        return res.status(409).json({
+          error: "用户名已经存在"
+        });
+
+      }
+
 
       const hash =
         await bcrypt.hash(
@@ -347,13 +627,19 @@ app.post(
           12
         );
 
+
       const users =
         await db(
           `
-          INSERT INTO users
-          (username,password_hash)
+          INSERT INTO users (
+            username,
+            password_hash
+          )
 
-          VALUES($1,$2)
+          VALUES (
+            $1,
+            $2
+          )
 
           RETURNING
             id,
@@ -368,24 +654,26 @@ app.post(
           ]
         );
 
-      const user = users[0];
+
+      const user =
+        users[0];
+
 
       res.json({
-        token: createToken(user),
+
+        token:
+          createToken(user),
+
         user
+
       });
 
     } catch (error) {
 
-      if (error.code === "23505") {
-
-        return res.status(409).json({
-          error: "用户名已经存在"
-        });
-
-      }
-
-      console.error(error);
+      console.error(
+        "注册错误:",
+        error
+      );
 
       res.status(500).json({
         error: "注册失败"
@@ -396,9 +684,10 @@ app.post(
   }
 );
 
-/* =========================
+
+/* =========================================================
    登录
-========================= */
+========================================================= */
 
 app.post(
   "/api/login",
@@ -416,6 +705,7 @@ app.post(
           req.body.password || ""
         );
 
+
       const users =
         await db(
           `
@@ -429,14 +719,17 @@ app.post(
 
           FROM users
 
-          WHERE username=$1
+          WHERE username = $1
           `,
           [
             username
           ]
         );
 
-      const user = users[0];
+
+      const user =
+        users[0];
+
 
       if (
         !user ||
@@ -447,18 +740,22 @@ app.post(
       ) {
 
         return res.status(401).json({
-          error: "用户名或密码错误"
+          error:
+            "用户名或密码错误"
         });
 
       }
+
 
       if (user.is_banned) {
 
         return res.status(403).json({
-          error: "账号已被封禁"
+          error:
+            "你的账号已被封禁"
         });
 
       }
+
 
       res.json({
 
@@ -466,18 +763,31 @@ app.post(
           createToken(user),
 
         user: {
+
           id: user.id,
-          username: user.username,
-          is_admin: user.is_admin,
-          is_muted: user.is_muted,
-          is_banned: user.is_banned
+
+          username:
+            user.username,
+
+          is_admin:
+            user.is_admin,
+
+          is_muted:
+            user.is_muted,
+
+          is_banned:
+            user.is_banned
+
         }
 
       });
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "登录错误:",
+        error
+      );
 
       res.status(500).json({
         error: "登录失败"
@@ -488,9 +798,10 @@ app.post(
   }
 );
 
-/* =========================
+
+/* =========================================================
    当前用户
-========================= */
+========================================================= */
 
 app.get(
   "/api/me",
@@ -502,6 +813,7 @@ app.get(
         req.user.id
       );
 
+
     if (!user) {
 
       return res.status(404).json({
@@ -509,6 +821,7 @@ app.get(
       });
 
     }
+
 
     if (user.is_banned) {
 
@@ -518,6 +831,7 @@ app.get(
 
     }
 
+
     res.json({
       user
     });
@@ -525,129 +839,190 @@ app.get(
   }
 );
 
-/* =========================
-   好友列表
-========================= */
+
+/* =========================================================
+   好友
+========================================================= */
 
 app.get(
   "/api/friends",
   auth,
   async (req, res) => {
 
-    const friends =
-      await db(
-        `
-        SELECT
-          u.id,
-          u.username,
-          u.is_muted,
-          u.is_banned
+    try {
 
-        FROM friendships f
+      const friends =
+        await db(
+          `
+          SELECT
+            u.id,
+            u.username,
+            u.is_muted,
+            u.is_banned
 
-        JOIN users u
-          ON u.id=f.friend_id
+          FROM friendships f
 
-        WHERE f.user_id=$1
+          JOIN users u
+            ON u.id = f.friend_id
 
-        ORDER BY u.username
-        `,
-        [
-          req.user.id
-        ]
-      );
+          WHERE f.user_id = $1
 
-    res.json(friends);
+          ORDER BY u.username
+          `,
+          [
+            req.user.id
+          ]
+        );
+
+
+      res.json(friends);
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        error: "获取好友失败"
+      });
+
+    }
 
   }
 );
 
-/* =========================
+
+/* =========================================================
    添加好友
-========================= */
+========================================================= */
 
 app.post(
   "/api/friends",
   auth,
   async (req, res) => {
 
-    const username =
-      String(
-        req.body.username || ""
-      ).trim();
+    try {
 
-    const users =
+      const username =
+        String(
+          req.body.username || ""
+        ).trim();
+
+
+      const users =
+        await db(
+          `
+          SELECT
+            id,
+            username,
+            is_banned
+
+          FROM users
+
+          WHERE username = $1
+          `,
+          [
+            username
+          ]
+        );
+
+
+      const target =
+        users[0];
+
+
+      if (!target) {
+
+        return res.status(404).json({
+          error: "用户不存在"
+        });
+
+      }
+
+
+      if (
+        target.id === req.user.id
+      ) {
+
+        return res.status(400).json({
+          error: "不能添加自己"
+        });
+
+      }
+
+
+      if (target.is_banned) {
+
+        return res.status(400).json({
+          error: "该用户已被封禁"
+        });
+
+      }
+
+
       await db(
         `
-        SELECT id,username
+        INSERT INTO friendships (
+          user_id,
+          friend_id
+        )
 
-        FROM users
+        VALUES (
+          $1,
+          $2
+        )
 
-        WHERE username=$1
+        ON CONFLICT DO NOTHING
         `,
         [
-          username
+          req.user.id,
+          target.id
         ]
       );
 
-    const target = users[0];
 
-    if (!target) {
+      await db(
+        `
+        INSERT INTO friendships (
+          user_id,
+          friend_id
+        )
 
-      return res.status(404).json({
-        error: "用户不存在"
+        VALUES (
+          $1,
+          $2
+        )
+
+        ON CONFLICT DO NOTHING
+        `,
+        [
+          target.id,
+          req.user.id
+        ]
+      );
+
+
+      res.json({
+        success: true,
+        user: target
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        error: "添加好友失败"
       });
 
     }
-
-    if (
-      target.id === req.user.id
-    ) {
-
-      return res.status(400).json({
-        error: "不能添加自己"
-      });
-
-    }
-
-    await db(
-      `
-      INSERT INTO friendships
-      (user_id,friend_id)
-
-      VALUES($1,$2)
-
-      ON CONFLICT DO NOTHING
-      `,
-      [
-        req.user.id,
-        target.id
-      ]
-    );
-
-    await db(
-      `
-      INSERT INTO friendships
-      (user_id,friend_id)
-
-      VALUES($1,$2)
-
-      ON CONFLICT DO NOTHING
-      `,
-      [
-        target.id,
-        req.user.id
-      ]
-    );
-
-    res.json(target);
 
   }
 );
 
-/* =========================
+
+/* =========================================================
    群聊列表
-========================= */
+========================================================= */
 
 app.get(
   "/api/groups",
@@ -665,9 +1040,9 @@ app.get(
         FROM groups_chat g
 
         JOIN group_members gm
-          ON gm.group_id=g.id
+          ON gm.group_id = g.id
 
-        WHERE gm.user_id=$1
+        WHERE gm.user_id = $1
 
         ORDER BY g.created_at DESC
         `,
@@ -676,147 +1051,212 @@ app.get(
         ]
       );
 
+
     res.json(groups);
 
   }
 );
 
-/* =========================
+
+/* =========================================================
    创建群聊
-========================= */
+========================================================= */
 
 app.post(
   "/api/groups",
   auth,
   async (req, res) => {
 
-    const name =
-      String(
-        req.body.name || ""
-      ).trim();
+    try {
 
-    if (!name) {
+      const name =
+        String(
+          req.body.name || ""
+        ).trim();
 
-      return res.status(400).json({
-        error: "请输入群名称"
-      });
 
-    }
+      if (!name) {
 
-    const inviteCode =
-      crypto
-        .randomBytes(5)
-        .toString("hex")
-        .toUpperCase();
+        return res.status(400).json({
+          error: "请输入群名称"
+        });
 
-    const groups =
+      }
+
+
+      if (name.length > 80) {
+
+        return res.status(400).json({
+          error: "群名称最多80个字符"
+        });
+
+      }
+
+
+      const inviteCode =
+        crypto
+          .randomBytes(6)
+          .toString("hex")
+          .toUpperCase();
+
+
+      const groups =
+        await db(
+          `
+          INSERT INTO groups_chat (
+            name,
+            invite_code,
+            owner_id
+          )
+
+          VALUES (
+            $1,
+            $2,
+            $3
+          )
+
+          RETURNING
+            id,
+            name,
+            invite_code
+          `,
+          [
+            name,
+            inviteCode,
+            req.user.id
+          ]
+        );
+
+
+      const group =
+        groups[0];
+
+
       await db(
         `
-        INSERT INTO groups_chat
-        (name,invite_code,owner_id)
+        INSERT INTO group_members (
+          group_id,
+          user_id
+        )
 
-        VALUES($1,$2,$3)
-
-        RETURNING
-          id,
-          name,
-          invite_code
+        VALUES (
+          $1,
+          $2
+        )
         `,
         [
-          name,
-          inviteCode,
+          group.id,
           req.user.id
         ]
       );
 
-    const group =
-      groups[0];
 
-    await db(
-      `
-      INSERT INTO group_members
-      (group_id,user_id)
+      res.json(group);
 
-      VALUES($1,$2)
-      `,
-      [
-        group.id,
-        req.user.id
-      ]
-    );
+    } catch (error) {
 
-    res.json(group);
+      console.error(error);
+
+      res.status(500).json({
+        error: "创建群聊失败"
+      });
+
+    }
 
   }
 );
 
-/* =========================
+
+/* =========================================================
    加入群聊
-========================= */
+========================================================= */
 
 app.post(
   "/api/groups/join",
   auth,
   async (req, res) => {
 
-    const inviteCode =
-      String(
-        req.body.inviteCode || ""
-      )
-        .trim()
-        .toUpperCase();
+    try {
 
-    const groups =
+      const inviteCode =
+        String(
+          req.body.inviteCode || ""
+        )
+          .trim()
+          .toUpperCase();
+
+
+      const groups =
+        await db(
+          `
+          SELECT
+            id,
+            name,
+            invite_code
+
+          FROM groups_chat
+
+          WHERE invite_code = $1
+          `,
+          [
+            inviteCode
+          ]
+        );
+
+
+      const group =
+        groups[0];
+
+
+      if (!group) {
+
+        return res.status(404).json({
+          error: "邀请码无效"
+        });
+
+      }
+
+
       await db(
         `
-        SELECT
-          id,
-          name,
-          invite_code
+        INSERT INTO group_members (
+          group_id,
+          user_id
+        )
 
-        FROM groups_chat
+        VALUES (
+          $1,
+          $2
+        )
 
-        WHERE invite_code=$1
+        ON CONFLICT DO NOTHING
         `,
         [
-          inviteCode
+          group.id,
+          req.user.id
         ]
       );
 
-    const group =
-      groups[0];
 
-    if (!group) {
+      res.json(group);
 
-      return res.status(404).json({
-        error: "邀请码无效"
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        error: "加入群聊失败"
       });
 
     }
 
-    await db(
-      `
-      INSERT INTO group_members
-      (group_id,user_id)
-
-      VALUES($1,$2)
-
-      ON CONFLICT DO NOTHING
-      `,
-      [
-        group.id,
-        req.user.id
-      ]
-    );
-
-    res.json(group);
-
   }
 );
 
-/* =========================
-   判断聊天权限
-========================= */
+
+/* =========================================================
+   检查聊天权限
+========================================================= */
 
 async function canAccess(
   userId,
@@ -824,20 +1264,23 @@ async function canAccess(
   id
 ) {
 
-  if (
-    type === "public"
-  ) {
+  if (type === "public") {
 
     return id === "public";
 
   }
 
-  if (
-    type === "private"
-  ) {
 
-    if (!/^\d+$/.test(id))
+  if (type === "private") {
+
+    if (
+      !/^\d+$/.test(id)
+    ) {
+
       return false;
+
+    }
+
 
     const result =
       await db(
@@ -847,8 +1290,8 @@ async function canAccess(
         FROM friendships
 
         WHERE
-          user_id=$1
-          AND friend_id=$2
+          user_id = $1
+          AND friend_id = $2
         `,
         [
           userId,
@@ -856,16 +1299,22 @@ async function canAccess(
         ]
       );
 
+
     return result.length > 0;
 
   }
 
-  if (
-    type === "group"
-  ) {
 
-    if (!/^\d+$/.test(id))
+  if (type === "group") {
+
+    if (
+      !/^\d+$/.test(id)
+    ) {
+
       return false;
+
+    }
+
 
     const result =
       await db(
@@ -875,8 +1324,8 @@ async function canAccess(
         FROM group_members
 
         WHERE
-          group_id=$1
-          AND user_id=$2
+          group_id = $1
+          AND user_id = $2
         `,
         [
           Number(id),
@@ -884,225 +1333,292 @@ async function canAccess(
         ]
       );
 
+
     return result.length > 0;
 
   }
 
+
   return false;
 }
 
-/* =========================
+
+/* =========================================================
    获取消息
-========================= */
+========================================================= */
 
 app.get(
   "/api/messages",
   auth,
   async (req, res) => {
 
-    const type =
-      String(
-        req.query.type || "public"
+    try {
+
+      const type =
+        String(
+          req.query.type ||
+          "public"
+        );
+
+
+      const id =
+        String(
+          req.query.id ||
+          "public"
+        );
+
+
+      const allowed =
+        await canAccess(
+          req.user.id,
+          type,
+          id
+        );
+
+
+      if (!allowed) {
+
+        return res.status(403).json({
+          error: "没有聊天权限"
+        });
+
+      }
+
+
+      const messages =
+        await db(
+          `
+          SELECT
+
+            m.id,
+
+            m.text,
+
+            m.created_at,
+
+            m.channel_type,
+
+            m.channel_id,
+
+            u.id AS user_id,
+
+            u.username
+
+          FROM messages m
+
+          JOIN users u
+            ON u.id = m.user_id
+
+          WHERE
+            m.channel_type = $1
+            AND m.channel_id = $2
+
+          ORDER BY m.id DESC
+
+          LIMIT 100
+          `,
+          [
+            type,
+            id
+          ]
+        );
+
+
+      res.json(
+        messages.reverse()
       );
 
-    const id =
-      String(
-        req.query.id || "public"
-      );
+    } catch (error) {
 
-    if (
-      !(await canAccess(
-        req.user.id,
-        type,
-        id
-      ))
-    ) {
+      console.error(error);
 
-      return res.status(403).json({
-        error: "没有聊天权限"
+      res.status(500).json({
+        error: "获取消息失败"
       });
 
     }
 
-    const messages =
-      await db(
-        `
-        SELECT
-          m.id,
-          m.text,
-          m.created_at,
-
-          u.id AS user_id,
-          u.username
-
-        FROM messages m
-
-        JOIN users u
-          ON u.id=m.user_id
-
-        WHERE
-          m.channel_type=$1
-          AND m.channel_id=$2
-
-        ORDER BY m.id DESC
-
-        LIMIT 100
-        `,
-        [
-          type,
-          id
-        ]
-      );
-
-    res.json(
-      messages.reverse()
-    );
-
   }
 );
 
-/* =========================
+
+/* =========================================================
    发送消息
-========================= */
+========================================================= */
 
 app.post(
   "/api/messages",
   auth,
   async (req, res) => {
 
-    const user =
-      await getUser(
-        req.user.id
-      );
+    try {
 
-    if (!user) {
+      const user =
+        await getUser(
+          req.user.id
+        );
 
-      return res.status(401).json({
-        error: "用户不存在"
-      });
 
-    }
+      if (!user) {
 
-    if (user.is_banned) {
+        return res.status(401).json({
+          error: "用户不存在"
+        });
 
-      return res.status(403).json({
-        error: "账号已封禁"
-      });
+      }
 
-    }
 
-    if (user.is_muted) {
+      if (user.is_banned) {
 
-      return res.status(403).json({
-        error: "你已被禁言"
-      });
+        return res.status(403).json({
+          error: "你的账号已被封禁"
+        });
 
-    }
+      }
 
-    const type =
-      String(
-        req.body.type || "public"
-      );
 
-    const id =
-      String(
-        req.body.id || "public"
-      );
+      if (user.is_muted) {
 
-    const text =
-      String(
-        req.body.text || ""
-      ).trim();
+        return res.status(403).json({
+          error: "你已被管理员禁言"
+        });
 
-    if (!text) {
+      }
 
-      return res.status(400).json({
-        error: "消息不能为空"
-      });
 
-    }
+      const type =
+        String(
+          req.body.type ||
+          "public"
+        );
 
-    if (text.length > 2000) {
 
-      return res.status(400).json({
-        error: "消息最多2000字"
-      });
+      const id =
+        String(
+          req.body.id ||
+          "public"
+        );
 
-    }
 
-    if (
-      !(await canAccess(
-        req.user.id,
-        type,
-        id
-      ))
-    ) {
+      const text =
+        String(
+          req.body.text ||
+          ""
+        ).trim();
 
-      return res.status(403).json({
-        error: "没有聊天权限"
-      });
 
-    }
+      if (!text) {
 
-    const messages =
-      await db(
-        `
-        INSERT INTO messages
-        (
-          channel_type,
-          channel_id,
-          user_id,
-          text
-        )
+        return res.status(400).json({
+          error: "消息不能为空"
+        });
 
-        VALUES($1,$2,$3,$4)
+      }
 
-        RETURNING
-          id,
-          text,
-          created_at
-        `,
-        [
-          type,
-          id,
+
+      if (text.length > 2000) {
+
+        return res.status(400).json({
+          error: "消息最多2000字"
+        });
+
+      }
+
+
+      const allowed =
+        await canAccess(
           req.user.id,
-          text
-        ]
-      );
+          type,
+          id
+        );
 
-    const message = {
 
-      ...messages[0],
+      if (!allowed) {
 
-      user_id:
-        req.user.id,
+        return res.status(403).json({
+          error: "没有聊天权限"
+        });
 
-      username:
-        user.username,
+      }
 
-      channel_type:
-        type,
 
-      channel_id:
-        id
+      const messages =
+        await db(
+          `
+          INSERT INTO messages (
+            channel_type,
+            channel_id,
+            user_id,
+            text
+          )
 
-    };
+          VALUES (
+            $1,
+            $2,
+            $3,
+            $4
+          )
 
-    io
-      .to(`${type}:${id}`)
-      .emit(
-        "message",
-        message
-      );
+          RETURNING
+            id,
+            text,
+            created_at
+          `,
+          [
+            type,
+            id,
+            req.user.id,
+            text
+          ]
+        );
 
-    res.json(message);
+
+      const message = {
+
+        ...messages[0],
+
+        channel_type:
+          type,
+
+        channel_id:
+          id,
+
+        user_id:
+          req.user.id,
+
+        username:
+          user.username
+
+      };
+
+
+      io
+        .to(`${type}:${id}`)
+        .emit(
+          "message",
+          message
+        );
+
+
+      res.json(message);
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        error: "发送消息失败"
+      });
+
+    }
 
   }
 );
 
-/* =========================
+
+/* =========================================================
    管理员：用户列表
-========================= */
+========================================================= */
 
 app.get(
   "/api/admin/users",
@@ -1110,31 +1626,45 @@ app.get(
   requireAdmin,
   async (req, res) => {
 
-    const users =
-      await db(
-        `
-        SELECT
-          id,
-          username,
-          is_admin,
-          is_muted,
-          is_banned,
-          created_at
+    try {
 
-        FROM users
+      const users =
+        await db(
+          `
+          SELECT
+            id,
+            username,
+            is_admin,
+            is_muted,
+            is_banned,
+            created_at
 
-        ORDER BY id DESC
-        `
-      );
+          FROM users
 
-    res.json(users);
+          ORDER BY id DESC
+          `
+        );
+
+
+      res.json(users);
+
+    } catch (error) {
+
+      console.error(error);
+
+      res.status(500).json({
+        error: "获取用户列表失败"
+      });
+
+    }
 
   }
 );
 
-/* =========================
+
+/* =========================================================
    管理员操作
-========================= */
+========================================================= */
 
 async function moderation(
   req,
@@ -1143,65 +1673,96 @@ async function moderation(
   value
 ) {
 
-  const id =
-    Number(req.params.id);
+  try {
 
-  if (!Number.isInteger(id)) {
+    const id =
+      Number(
+        req.params.id
+      );
 
-    return res.status(400).json({
-      error: "用户ID无效"
-    });
 
-  }
+    if (!Number.isInteger(id)) {
 
-  if (id === req.user.id) {
+      return res.status(400).json({
+        error: "用户ID无效"
+      });
 
-    return res.status(400).json({
-      error: "不能操作自己"
-    });
-
-  }
-
-  const target =
-    await getUser(id);
-
-  if (!target) {
-
-    return res.status(404).json({
-      error: "用户不存在"
-    });
-
-  }
-
-  if (target.is_admin) {
-
-    return res.status(403).json({
-      error: "不能操作管理员"
-    });
-
-  }
-
-  await db(
-    `UPDATE users SET ${field}=$1 WHERE id=$2`,
-    [
-      value,
-      id
-    ]
-  );
-
-  io.emit(
-    "user_moderated",
-    {
-      userId: id,
-      field,
-      value
     }
-  );
 
-  res.json({
-    success: true
-  });
+
+    if (
+      id === req.user.id
+    ) {
+
+      return res.status(400).json({
+        error: "不能操作自己"
+      });
+
+    }
+
+
+    const target =
+      await getUser(id);
+
+
+    if (!target) {
+
+      return res.status(404).json({
+        error: "用户不存在"
+      });
+
+    }
+
+
+    if (target.is_admin) {
+
+      return res.status(403).json({
+        error: "不能操作管理员"
+      });
+
+    }
+
+
+    await db(
+      `
+      UPDATE users
+
+      SET ${field} = $1
+
+      WHERE id = $2
+      `,
+      [
+        value,
+        id
+      ]
+    );
+
+
+    io.emit(
+      "user_moderated",
+      {
+        userId: id,
+        field,
+        value
+      }
+    );
+
+
+    res.json({
+      success: true
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "操作失败"
+    });
+
+  }
 }
+
 
 /* 禁言 */
 
@@ -1218,6 +1779,7 @@ app.post(
     )
 );
 
+
 /* 解禁言 */
 
 app.post(
@@ -1232,6 +1794,7 @@ app.post(
       false
     )
 );
+
 
 /* 封禁 */
 
@@ -1248,6 +1811,7 @@ app.post(
     )
 );
 
+
 /* 解封 */
 
 app.post(
@@ -1263,9 +1827,10 @@ app.post(
     )
 );
 
-/* =========================
-   Socket.IO
-========================= */
+
+/* =========================================================
+   Socket.IO 身份验证
+========================================================= */
 
 io.use(
   (socket, next) => {
@@ -1273,7 +1838,21 @@ io.use(
     try {
 
       const token =
-        socket.handshake.auth?.token;
+        socket.handshake
+          ?.auth
+          ?.token;
+
+
+      if (!token) {
+
+        return next(
+          new Error(
+            "没有登录凭证"
+          )
+        );
+
+      }
+
 
       socket.user =
         jwt.verify(
@@ -1281,13 +1860,14 @@ io.use(
           JWT_SECRET
         );
 
+
       next();
 
     } catch {
 
       next(
         new Error(
-          "身份验证失败"
+          "Socket 身份验证失败"
         )
       );
 
@@ -1296,9 +1876,20 @@ io.use(
   }
 );
 
+
+/* =========================================================
+   Socket.IO
+========================================================= */
+
 io.on(
   "connection",
   socket => {
+
+    console.log(
+      "Socket connected:",
+      socket.user.username
+    );
+
 
     socket.on(
       "join",
@@ -1307,17 +1898,32 @@ io.on(
         id = "public"
       } = {}) => {
 
-        const allowed =
-          await canAccess(
-            socket.user.id,
-            type,
-            String(id)
-          );
+        try {
 
-        if (allowed) {
+          const allowed =
+            await canAccess(
+              socket.user.id,
+              type,
+              String(id)
+            );
+
+
+          if (!allowed) {
+
+            return;
+
+          }
+
 
           socket.join(
             `${type}:${id}`
+          );
+
+        } catch (error) {
+
+          console.error(
+            "Socket join error:",
+            error
           );
 
         }
@@ -1325,14 +1931,41 @@ io.on(
       }
     );
 
+
+    socket.on(
+      "disconnect",
+      () => {
+
+        console.log(
+          "Socket disconnected:",
+          socket.user.username
+        );
+
+      }
+    );
+
   }
 );
 
-/* =========================
-   重要：
-   Express 5 不要使用：
-   app.get("*", ...)
-========================= */
+
+/* =========================================================
+   SPA 回退
+========================================================= */
+
+/*
+ * 注意：
+ *
+ * 不要写：
+ *
+ * app.get("*", ...)
+ *
+ * Express 5 会出现：
+ *
+ * PathError:
+ * Missing parameter name at index 1: *
+ *
+ * 所以这里使用普通 middleware。
+ */
 
 app.use(
   (req, res) => {
@@ -1345,31 +1978,41 @@ app.use(
   }
 );
 
-/* =========================
+
+/* =========================================================
    启动
-========================= */
+========================================================= */
 
 async function start() {
 
-  await initDatabase();
+  try {
 
-  await ensureAdmin();
+    await initDatabase();
 
-  server.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
+    await ensureAdmin();
 
-      console.log(
-        `Server running on port ${PORT}`
-      );
 
-    }
-  );
-}
+    server.listen(
+      PORT,
+      "0.0.0.0",
+      () => {
 
-start().catch(
-  error => {
+        console.log(
+          "================================="
+        );
+
+        console.log(
+          `简聊服务器运行于端口 ${PORT}`
+        );
+
+        console.log(
+          "================================="
+        );
+
+      }
+    );
+
+  } catch (error) {
 
     console.error(
       "服务器启动失败:",
@@ -1379,4 +2022,8 @@ start().catch(
     process.exit(1);
 
   }
-);
+
+}
+
+
+start();
