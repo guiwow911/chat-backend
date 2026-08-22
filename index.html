@@ -3,28 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <title>聊天室</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system}
+        body{background:#12121a;color:#eeeeee;height:100vh;display:flex;overflow:hidden}
+        /*侧边在线用户栏*/
+        .sidebar{width:145px;background:#181824;padding:14px;border-right:1px solid #29293d}
+        .sidebar .user-item{padding:7px 5px;margin:5px 0;color:#b6b6d0;font-size:15px}
+        /*主聊天区域*/
+        .main-area{flex:1;display:flex;flex-direction:column;height:100%}
+        #messageWrap{flex:1;padding:16px;overflow-y:auto}
+        .msg-item{margin:7px 0;font-size:15px}
+        .input-bar{display:flex;padding:12px;border-top:1px solid #29293d}
+        #chatInput{flex:1;background:#1e1e2f;border:1px solid #343652;color:#ffffff;padding:9px 12px;border-radius:5px;font-size:15px}
+        .input-bar button{background:#3c3c73;color:#fff;border:none;padding:8px 15px;border-radius:5px;margin-left:10px;cursor:pointer;font-size:14px}
+        /*登录弹窗*/
+        .login-mask{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:99}
+        .login-box{background:#272742;padding:26px;border-radius:9px}
+        .login-box input{display:block;width:270px;margin:11px 0;padding:9px;background:#1e1e2e;border:1px solid #444666;color:#fff;border-radius:5px;font-size:15px}
+        /*管理员封禁弹窗（和你截图样式对齐）*/
+        .admin-dialog{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:490px;background:#272742;border-radius:11px;padding:22px;border:1px solid #454575;max-height:86vh;overflow-y:auto;z-index:100}
+        .ban-row{display:flex;align-items:center;margin:9px 0}
+        .ban-name{width:145px}
+        .perm-ban-tag{flex:1;background:#b72537;text-align:center;padding:5px 0;border-radius:4px;margin:0 10px}
+        .unban-btn{background:#299b49;border:none;color:#fff;padding:6px 0;border-radius:4px;margin-left:10px;width:160px;cursor:pointer}
+        .dialog-title{margin:14px 0 7px 0;font-weight:bold;font-size:17px}
+        .close-btn{width:100%;margin-top:18px;padding:11px;background:#414179;border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:15px}
+    </style>
 </head>
 <body>
-    <div id="loginBox">
-        <h3>注册 / 登录</h3>
-        <input type="text" id="username" placeholder="用户名">
-        <input type="password" id="password" placeholder="密码">
-        <button onclick="register()">注册</button>
-        <button onclick="login()">登录</button>
+    <!--登录弹窗-->
+    <div class="login-mask" id="loginMask">
+        <div class="login-box">
+            <h3>注册 / 登录</h3>
+            <input type="text" id="username" placeholder="用户名">
+            <input type="password" id="password" placeholder="密码">
+            <button onclick="register()">注册</button>
+            <button onclick="login()">登录</button>
+        </div>
     </div>
 
-    <div id="chatBox" style="display:none;">
-        <div id="messageList"></div>
-        <input type="text" id="inputMsg" placeholder="输入消息，发送@地铁跑酷触发跳转">
-        <button onclick="sendMsg()">发送</button>
+    <!--侧边栏在线用户-->
+    <div class="sidebar" id="sideBar" style="display:none">
+        <h4>在线用户</h4>
+        <div id="onlineUserList"></div>
+    </div>
+
+    <!--聊天主界面-->
+    <div class="main-area" id="chatMain" style="display:none">
+        <div id="messageWrap"></div>
+        <div class="input-bar">
+            <input id="chatInput" placeholder="发送 @地铁跑酷 触发网页跳转">
+            <button onclick="sendMessage()">发送</button>
+            <button onclick="openAdmin()">管理面板</button>
+        </div>
+    </div>
+
+    <!--管理员封禁弹窗-->
+    <div class="admin-dialog" id="adminDialog" style="display:none">
+        <h3>账号管理</h3>
+        <div class="dialog-title">当前禁言列表</div>
+        <div>暂无禁言用户</div>
+        <div class="dialog-title">账号封禁列表</div>
+        <div id="banDom"></div>
+        <button class="close-btn" onclick="closeAdmin()">关闭</button>
     </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-let userName = "";
+let myName = "";
+let adminFlag = false;
 
-// 【关键】监听后端跳转指令
+//【跳转监听，完整保留原有全部UI逻辑】
 socket.on("jumpSubwaySurfers", function(){
     window.location.href = "https://subwaysurfers3dbyzjp.netlify.app/";
 })
@@ -53,29 +103,56 @@ async function login(){
     })
     const data = await res.json();
     if(data.ok){
-        userName = data.username;
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("chatBox").style.display = "block";
-        socket.emit("login",userName);
+        myName = data.username;
+        adminFlag = data.isAdmin;
+        document.getElementById("loginMask").style.display = "none";
+        document.getElementById("sideBar").style.display = "block";
+        document.getElementById("chatMain").style.display = "flex";
+        socket.emit("login", myName);
     }else{
         alert(data.msg);
     }
 }
 
-//发送消息
-function sendMsg(){
-    const text = document.getElementById("inputMsg").value;
-    if(!text)return;
-    socket.emit("chat",text);
-    document.getElementById("inputMsg").value = "";
+//发送聊天
+function sendMessage(){
+    const text = document.getElementById("chatInput").value.trim();
+    if(!text) return;
+    socket.emit("chat", text);
+    document.getElementById("chatInput").value = "";
 }
 
-//接收聊天
-socket.on("chat",function(data){
+//接收聊天消息
+socket.on("chat", (data)=>{
     const div = document.createElement("div");
+    div.className = "msg-item";
     div.innerText = `${data.name}: ${data.text}`;
-    document.getElementById("messageList").appendChild(div);
+    document.getElementById("messageWrap").appendChild(div);
 })
+
+//在线用户列表更新
+socket.on("userList", (arr)=>{
+    const dom = document.getElementById("onlineUserList");
+    dom.innerHTML = "";
+    arr.forEach(name=>{
+        const d = document.createElement("div");
+        d.className = "user-item";
+        d.innerText = name;
+        dom.appendChild(d);
+    })
+})
+
+//管理面板
+function openAdmin(){
+    if(!adminFlag){
+        alert("你不是管理员");
+        return;
+    }
+    document.getElementById("adminDialog").style.display = "block";
+}
+function closeAdmin(){
+    document.getElementById("adminDialog").style.display = "none";
+}
 </script>
 </body>
 </html>
