@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简聊 · 匿名聊天</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,"Segoe UI","Microsoft YaHei",sans-serif;background:#f5f7fb;color:#172033}
+button,input{font:inherit}button{cursor:pointer;border:0}
+.auth{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#eef2ff,#f8fafc)}
+.auth-card{width:390px;background:#fff;border:1px solid #e8ebf2;border-radius:20px;padding:34px;box-shadow:0 18px 60px #1f29370f}
+.logo{font-size:28px;font-weight:800;margin-bottom:8px}.muted{color:#7b8496}.auth-card h2{margin:28px 0 8px}
+.field{margin:14px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
+input{width:100%;padding:12px 14px;border:1px solid #dfe4ed;border-radius:11px;outline:none;background:#fbfcfe}
+input:focus{border-color:#667eea;box-shadow:0 0 0 3px #667eea16}
+.primary{width:100%;padding:12px;border-radius:11px;background:#5865f2;color:#fff;font-weight:700;margin-top:8px}
+.link{background:none;color:#5865f2;font-weight:600;margin-top:14px;width:100%}
+.app{height:100vh;display:flex;overflow:hidden}
+.sidebar{width:250px;background:#fff;border-right:1px solid #e7eaf0;padding:18px 12px;display:flex;flex-direction:column}
+.brand{padding:8px 10px 22px;font-weight:800;font-size:20px}
+.nav-btn{width:100%;text-align:left;background:none;padding:11px 12px;border-radius:10px;color:#5d6678;margin:2px 0}
+.nav-btn.active,.nav-btn:hover{background:#f0f2ff;color:#4f5eea}
+.section{font-size:11px;color:#9aa2b1;font-weight:800;padding:20px 12px 8px;text-transform:uppercase}
+.friend{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer}.friend:hover{background:#f6f7fa}
+.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#e8ebff;color:#5865f2;font-weight:800;font-size:13px}
+.userbox{margin-top:auto;border-top:1px solid #eee;padding:14px 8px;display:flex;align-items:center;gap:9px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:62px;background:#fff;border-bottom:1px solid #e7eaf0;display:flex;align-items:center;padding:0 22px;gap:12px}
+.top-title{font-weight:800}.online{font-size:12px;color:#20a36a}
+.content{flex:1;display:flex;min-height:0}
+.chat{flex:1;display:flex;flex-direction:column;min-width:0}
+.messages{flex:1;overflow:auto;padding:24px 8%;background:#fbfcfe}
+.msg{display:flex;gap:10px;margin:18px 0}.msg.me{justify-content:flex-end}.bubble{max-width:65%;background:#fff;border:1px solid #e8ebf1;border-radius:14px;padding:10px 13px;box-shadow:0 3px 10px #1f293705}.me .bubble{background:#5865f2;color:#fff;border-color:#5865f2}.name{font-size:12px;font-weight:700;margin-bottom:4px;color:#596276}.me .name{display:none}
+.composer{padding:14px 7%;background:#fff;border-top:1px solid #e7eaf0;display:flex;gap:10px}.composer input{background:#f7f8fb}.composer button{width:46px;border-radius:11px;background:#5865f2;color:#fff}
+.right{width:280px;background:#fff;border-left:1px solid #e7eaf0;padding:20px;overflow:auto}
+.panel h3{margin:0 0 14px}.panel-card{padding:14px;border:1px solid #e7eaf0;border-radius:12px;margin-bottom:10px}.panel-card button{margin-top:9px;padding:8px 11px;border-radius:8px;background:#eef0ff;color:#5865f2;font-weight:700}
+.modal{position:fixed;inset:0;background:#11182766;display:none;place-items:center;padding:20px}.modal.show{display:grid}.modal-card{width:380px;background:#fff;border-radius:18px;padding:24px}.modal-actions{display:flex;gap:10px;margin-top:16px}.secondary{flex:1;padding:11px;border-radius:10px;background:#eef0f4}.modal .primary{flex:1;margin:0}
+.hidden{display:none!important}
+@media(max-width:850px){.right{display:none}.sidebar{width:70px}.brand{font-size:0}.brand:after{content:"简";font-size:20px}.nav-btn{font-size:0;text-align:center}.nav-btn:first-letter{font-size:18px}.section,.friend span,.userbox div:not(.avatar){display:none}.friend{justify-content:center}.userbox{justify-content:center}}
+</style>
+</head>
+<body>
+<div id="auth" class="auth">
+  <div class="auth-card">
+    <div class="logo">简聊</div><div class="muted">简单、清爽的聊天空间</div>
+    <div id="loginBox">
+      <h2>登录</h2><div class="field"><label>用户名</label><input id="loginUser" placeholder="输入用户名"></div>
+      <div class="field"><label>密码</label><input id="loginPass" type="password" placeholder="输入密码"></div>
+      <button class="primary" onclick="login()">登录</button>
+      <button class="link" onclick="toggleAuth()">没有账号？立即注册</button>
+    </div>
+    <div id="registerBox" class="hidden">
+      <h2>创建账号</h2><div class="field"><label>用户名</label><input id="regUser" placeholder="设置用户名"></div>
+      <div class="field"><label>密码</label><input id="regPass" type="password" placeholder="设置密码"></div>
+      <button class="primary" onclick="register()">注册并进入</button>
+      <button class="link" onclick="toggleAuth()">已有账号？返回登录</button>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand">简聊</div>
+    <button class="nav-btn active">💬 公共频道</button>
+    <button class="nav-btn" onclick="openModal('createGroup')">➕ 创建群聊</button>
+    <button class="nav-btn" onclick="openModal('joinGroup')">🔗 加入群聊</button>
+    <button class="nav-btn" onclick="openModal('addFriend')">👤 添加好友</button>
+    <div class="section">好友</div>
+    <div id="friends"></div>
+    <div class="section">我的群聊</div>
+    <div id="groups"></div>
+    <div class="userbox"><div class="avatar" id="userAvatar"></div><div><b id="userName"></b><div class="muted" style="font-size:11px">在线</div></div></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><span class="top-title" id="channelTitle">公共聊天</span><span class="online">● 在线</span></header>
+    <div class="content">
+      <section class="chat">
+        <div class="messages" id="messages"></div>
+        <div class="composer"><input id="messageInput" placeholder="输入消息，按 Enter 发送..." onkeydown="if(event.key==='Enter')sendMessage()"><button onclick="sendMessage()">➤</button></div>
+      </section>
+      <aside class="right">
+        <div class="panel"><h3>聊天信息</h3>
+          <div class="panel-card"><b>公共聊天</b><p class="muted">欢迎来到简聊，注册后即可聊天、添加好友和加入群聊。</p></div>
+          <div class="panel-card"><b>快速操作</b><br><button onclick="openModal('addFriend')">添加好友</button><button onclick="openModal('createGroup')">创建群聊</button></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<div id="modal" class="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-card">
+    <h3 id="modalTitle"></h3>
+    <div class="field"><label id="modalLabel"></label><input id="modalInput"></div>
+    <div class="modal-actions"><button class="secondary" onclick="closeModal()">取消</button><button class="primary" onclick="confirmModal()">确定</button></div>
+  </div>
+</div>
+
+<script>
+let currentUser=localStorage.getItem('chat_user')||'';
+let mode='';
+let friends=JSON.parse(localStorage.getItem('chat_friends')||'[]');
+let groups=JSON.parse(localStorage.getItem('chat_groups')||'[]');
+let messages=JSON.parse(localStorage.getItem('chat_messages')||'[]');
+
+function toggleAuth(){loginBox.classList.toggle('hidden');registerBox.classList.toggle('hidden')}
+function register(){
+ const u=regUser.value.trim(),p=regPass.value;
+ if(!u||!p)return alert('请填写用户名和密码');
+ localStorage.setItem('user_'+u,JSON.stringify({u,p})); currentUser=u; localStorage.setItem('chat_user',u); enterApp();
+}
+function login(){
+ const u=loginUser.value.trim(),p=loginPass.value,data=JSON.parse(localStorage.getItem('user_'+u)||'null');
+ if(!data||data.p!==p)return alert('用户名或密码错误');
+ currentUser=u;localStorage.setItem('chat_user',u);enterApp();
+}
+function enterApp(){
+ auth.classList.add('hidden');app.classList.remove('hidden');userName.textContent=currentUser;userAvatar.textContent=currentUser.slice(0,1).toUpperCase();renderFriends();renderGroups();renderMessages();
+}
+function renderFriends(){friends.innerHTML='';friends.forEach(f=>{friends.innerHTML+=`<div class="friend" onclick="openPrivate('${esc(f)}')"><div class="avatar">${esc(f[0]||'?')}</div><span>${esc(f)}</span></div>`})}
+function renderGroups(){groups.innerHTML='';groups.forEach(g=>{groups.innerHTML+=`<div class="friend" onclick="openGroup('${esc(g)}')"><div class="avatar">#</div><span>${esc(g)}</span></div>`})}
+function renderMessages(){
+ messagesEl=messagesEl||document.getElementById('messages');messagesEl.innerHTML='';
+ let list=messages.filter(m=>m.channel===(window.channel||'public'));
+ if(!list.length) list=[{name:'系统',text:'欢迎来到公共聊天频道 👋',channel:'public'}];
+ list.forEach(m=>messagesEl.innerHTML+=`<div class="msg ${m.name===currentUser?'me':''}"><div class="avatar">${esc(m.name[0]||'?')}</div><div><div class="name">${esc(m.name)}</div><div class="bubble">${esc(m.text)}</div></div></div>`);
+ messagesEl.scrollTop=messagesEl.scrollHeight;
+}
+function sendMessage(){let t=messageInput.value.trim();if(!t)return;messages.push({name:currentUser,text:t,channel:window.channel||'public'});localStorage.setItem('chat_messages',JSON.stringify(messages));messageInput.value='';renderMessages()}
+function openPrivate(f){window.channel='private:'+f;channelTitle.textContent='与 '+f+' 私聊';renderMessages()}
+function openGroup(g){window.channel='group:'+g;channelTitle.textContent='# '+g;renderMessages()}
+function openModal(m){
+ mode=m;modal.classList.add('show');modalInput.value='';
+ const map={createGroup:['创建群聊','群聊名称'],joinGroup:['加入群聊','群聊邀请码'],addFriend:['添加好友','好友用户名']};
+ modalTitle.textContent=map[m][0];modalLabel.textContent=map[m][1];setTimeout(()=>modalInput.focus(),50);
+}
+function closeModal(){modal.classList.remove('show')}
+function confirmModal(){
+ const v=modalInput.value.trim();if(!v)return;
+ if(mode==='createGroup'){groups.push(v);localStorage.setItem('chat_groups',JSON.stringify(groups));renderGroups();openGroup(v)}
+ if(mode==='joinGroup'){if(!groups.includes(v))groups.push(v);localStorage.setItem('chat_groups',JSON.stringify(groups));renderGroups();openGroup(v)}
+ if(mode==='addFriend'){if(!friends.includes(v)&&v!==currentUser)friends.push(v);localStorage.setItem('chat_friends',JSON.stringify(friends));renderFriends();openPrivate(v)}
+ closeModal();
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+if(currentUser)enterApp();
+</script>
+</body>
+</html>
