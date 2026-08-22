@@ -2,582 +2,80 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>聊天室</title>
-    <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui}
-body{background:#1a1a2e;color:#fff;height:100vh;display:flex;flex-direction:column;padding:12px;max-width:1300px;margin:0 auto}
-h1{text-align:center;margin-bottom:12px;font-size:22px}
-
-/*登录弹窗*/
-.login-box{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:99}
-.login-card{background:#222840;padding:20px;border-radius:12px;width:92%;max-width:360px}
-.login-card h2{margin-bottom:16px;text-align:center;font-size:20px}
-.login-card input{width:100%;padding:11px;margin:7px 0;border:none;border-radius:8px;background:#2f3454;color:#fff;font-size:16px}
-.btn-row{display:flex;gap:10px;margin-top:12px}
-button{flex:1;padding:11px;border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer}
-.btn-login{background:#3478ff}
-.btn-reg{background:#27ae60}
-.tip{margin-top:10px;color:#ff8888;font-size:14px;text-align:center}
-
-#main-room{display:none;flex:1;gap:10px}
-.sidebar{width:260px;background:#16213e;border-radius:10px;padding:10px;overflow-y:auto}
-.chat-main{flex:1;display:flex;flex-direction:column}
-.chat-title{text-align:center;margin-bottom:8px;font-size:18px;color:#ffdd99}
-#msgbox{flex:1;background:#16213e;border-radius:10px;padding:12px;overflow-y:auto;margin-bottom:10px}
-.msg-self{display:flex;flex-direction:column;align-items:flex-end;margin:8px 0}
-.msg-other{display:flex;flex-direction:column;align-items:flex-start;margin:8px 0}
-.name{font-size:12px;color:#aaa;margin-bottom:2px}
-.text{background:#2b58d1;padding:9px 12px;border-radius:12px;max-width:82%}
-.msg-other .text{background:#353b54}
-.msg-img{max-width:220px;border-radius:10px;margin:4px 0}
-.bottom-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-#msginput{flex:1;min-width:140px;padding:10px;border-radius:8px;border:none;background:#27293d;color:#fff;font-size:16px}
-#img-input{display:none}
-#pick-img{padding:0 12px;background:#444870}
-#sendbtn{padding:0 14px;background:#3478ff}
-#adminPanelBtn{padding:0 12px;background:#995522;display:none}
-
-.context-menu{position:fixed;background:#222840;border:1px solid #444;border-radius:8px;z-index:100;display:none}
-.context-menu div{padding:8px 14px;cursor:pointer}
-.context-menu div:hover{background:#343b66}
-.system-notice{text-align:center;color:#ffdd77;font-size:13px;margin:6px 0}
-
-#ime-panel{display:none;background:#222840;padding:8px;border-radius:10px;margin-top:6px}
-.ime-key{display:inline-block;padding:6px 10px;margin:2px;background:#383e68;border-radius:4px;cursor:pointer}
-.ime-key:hover{background:#4c5494}
-
-.admin-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;display:none;align-items:center;justify-content:center}
-.admin-modal{background:#1f2440;width:94%;max-width:620px;border-radius:12px;padding:16px;max-height:85vh;overflow-y:auto}
-.admin-modal h3{margin-bottom:10px}
-.block{margin:16px 0}
-.item-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#2c3152;margin:5px 0;border-radius:6px;gap:6px;flex-wrap:wrap}
-.btn-small{padding:4px 9px;border-radius:4px;border:none;color:#fff;font-size:13px;cursor:pointer}
-.btn-ban{background:#c82c2c}
-.btn-unban{background:#298844}
-.btn-mute{background:#d48822}
-.btn-close{margin-top:12px;width:100%;padding:10px;background:#444870;border:none;border-radius:8px;color:white}
-
-.sidebar-block{margin-bottom:14px}
-.sidebar-block h4{margin-bottom:6px;color:#ffdd99}
-.sidebar-item{padding:6px 8px;background:#272c4e;border-radius:6px;margin:4px 0;cursor:pointer;font-size:14px}
-.sidebar-item:hover{background:#343b66}
-.sidebar-item.active{background:#2b58d1}
-.sidebar input{width:100%;padding:7px;border-radius:6px;border:none;background:#272c4e;color:#fff;margin:4px 0}
-.sidebar button{width:100%;padding:7px;font-size:14px;background:#304488;border:none;border-radius:6px;color:#fff;margin:3px 0}
-.pop-small{position:fixed;z-index:150;background:#222840;padding:14px;border-radius:10px;width:90%;max-width:340px}
-.pop-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:140;display:none;align-items:center;justify-content:center}
-    </style>
 </head>
 <body>
-
-<div class="login-box" id="loginModal">
-    <div class="login-card">
-        <h2>登录 / 注册</h2>
-        <input id="inp-user" placeholder="用户名">
-        <input id="inp-pwd" type="password" placeholder="密码">
-        <div class="btn-row">
-            <button class="btn-login" id="btnLogin">登录</button>
-            <button class="btn-reg" id="btnReg">注册</button>
-        </div>
-        <div class="tip" id="loginTip"></div>
+    <div id="loginBox">
+        <h3>注册 / 登录</h3>
+        <input type="text" id="username" placeholder="用户名">
+        <input type="password" id="password" placeholder="密码">
+        <button onclick="register()">注册</button>
+        <button onclick="login()">登录</button>
     </div>
-</div>
 
-<div id="main-room">
-    <div class="sidebar">
-        <div class="sidebar-block">
-            <h4>🌐全局公聊</h4>
-            <div class="sidebar-item active" data-type="global">全局聊天室</div>
-        </div>
-        <div class="sidebar-block">
-            <h4>👥好友</h4>
-            <input id="addFriendInput" placeholder="输入用户名添加好友">
-            <button id="btnAddFriend">发送好友申请</button>
-            <div id="friendApplyBox"></div>
-            <div id="friendListBox"></div>
-        </div>
-        <div class="sidebar-block">
-            <h4>🏘️群聊</h4>
-            <button id="btnCreateGroup">创建新群聊</button>
-            <input id="joinGroupCodeInput" placeholder="输入群码加入群聊">
-            <button id="btnJoinByCode">使用群码加入</button>
-            <div id="myGroupListBox"></div>
-        </div>
+    <div id="chatBox" style="display:none;">
+        <div id="messageList"></div>
+        <input type="text" id="inputMsg" placeholder="输入消息，发送@地铁跑酷触发跳转">
+        <button onclick="sendMsg()">发送</button>
     </div>
-    <div class="chat-main">
-        <div class="chat-title" id="chatTitle">🌐全局聊天室</div>
-        <span id="admin-badge" style="color:#ffdd44;display:none">【管理员】</span>
-        <div id="msgbox"></div>
-
-        <div class="bottom-bar">
-            <input id="img-input" type="file" accept="image/*">
-            <input id="msginput" placeholder="输入消息">
-            <button id="pick-img">图片</button>
-            <button id="sendbtn">发送</button>
-            <button id="openImeBtn">网页输入法</button>
-            <button id="adminPanelBtn">管理后台</button>
-        </div>
-        <div id="ime-panel">
-            <div>拼音模拟输入(网页内置)</div>
-            <div id="ime-keys"></div>
-        </div>
-    </div>
-</div>
-
-<div class="pop-backdrop" id="popBackdrop">
-    <div class="pop-small" id="popContent"></div>
-</div>
-
-<div class="context-menu" id="ctxMenu">
-    <div data-val="300000">禁言5分钟</div>
-    <div data-val="1800000">禁言30分钟</div>
-    <div data-val="-1">永久禁言</div>
-</div>
-
-<div class="admin-backdrop" id="adminBackdrop">
-    <div class="admin-modal">
-        <h3>管理员后台</h3>
-        <div class="block">
-            <h4>全部用户列表（可封禁）</h4>
-            <div id="userListBox"></div>
-        </div>
-        <div class="block">
-            <h4>当前禁言列表</h4>
-            <div id="muteListBox"></div>
-        </div>
-        <div class="block">
-            <h4>账号封禁列表</h4>
-            <div id="banListBox"></div>
-        </div>
-        <button class="btn-close" id="closeAdminBtn">关闭</button>
-    </div>
-</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-const box = document.getElementById("msgbox");
-const chatTitleDom = document.getElementById("chatTitle");
-const loginModal = document.getElementById("loginModal");
-const mainRoom = document.getElementById("main-room");
-const inpUser = document.getElementById("inp-user");
-const inpPwd = document.getElementById("inp-pwd");
-const loginTip = document.getElementById("loginTip");
-const btnLogin = document.getElementById("btnLogin");
-const btnReg = document.getElementById("btnReg");
-const msgInput = document.getElementById("msginput");
-const sendBtn = document.getElementById("sendbtn");
-const pickImgBtn = document.getElementById("pick-img");
-const imgInput = document.getElementById("img-input");
-const ctxMenu = document.getElementById("ctxMenu");
-const adminBadge = document.getElementById("admin-badge");
-const openImeBtn = document.getElementById("openImeBtn");
-const imePanel = document.getElementById("ime-panel");
-const imeKeys = document.getElementById("ime-keys");
-const adminPanelBtn = document.getElementById("adminPanelBtn");
-const adminBackdrop = document.getElementById("adminBackdrop");
-const closeAdminBtn = document.getElementById("closeAdminBtn");
-const userListBox = document.getElementById("userListBox");
-const muteListBox = document.getElementById("muteListBox");
-const banListBox = document.getElementById("banListBox");
+let userName = "";
 
-const addFriendInput = document.getElementById("addFriendInput");
-const btnAddFriend = document.getElementById("btnAddFriend");
-const friendApplyBox = document.getElementById("friendApplyBox");
-const friendListBox = document.getElementById("friendListBox");
-const btnCreateGroup = document.getElementById("btnCreateGroup");
-const joinGroupCodeInput = document.getElementById("joinGroupCodeInput");
-const btnJoinByCode = document.getElementById("btnJoinByCode");
-const myGroupListBox = document.getElementById("myGroupListBox");
-const popBackdrop = document.getElementById("popBackdrop");
-const popContent = document.getElementById("popContent");
-
-let myName = null;
-let amIAdmin = false;
-let rightClickTargetUser = null;
-let currentChatType = "global";
-let currentChatTarget = null;
-//会话缓存 key:global / private_xxx / group_xxx
-const sessionMsgCache = {};
-sessionMsgCache["global"] = [];
-
-//渲染单条消息
-function renderMsg(item){
-    const div = document.createElement("div");
-    if(item.type === "system"){
-        div.className = "system-notice";
-        div.innerText = item.msg;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
-        return;
-    }
-    div.className = item.sender === myName ? "msg-self" : "msg-other";
-    div.dataset.username = item.sender;
-    div.innerHTML = `<div class="name">${item.sender}</div>`;
-    if(item.img){
-        div.innerHTML += `<img class="msg-img" src="${item.img}">`;
-    }else{
-        div.innerHTML += `<div class="text">${escapeHtml(item.text)}</div>`;
-    }
-    if(amIAdmin && item.sender !== myName){
-        div.oncontextmenu = function(e){
-            e.preventDefault();
-            rightClickTargetUser = item.sender;
-            ctxMenu.style.display="block";
-            ctxMenu.style.left = e.pageX + "px";
-            ctxMenu.style.top = e.pageY + "px";
-        }
-    }
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
-}
-
-//渲染会话全部缓存消息
-function renderSession(sessionId){
-    box.innerHTML = "";
-    const list = sessionMsgCache[sessionId] || [];
-    list.forEach(renderMsg);
-}
-
-//获取当前会话key
-function getCurrentSessionKey(){
-    if(currentChatType === "global") return "global";
-    if(currentChatType === "private") return `private_${currentChatTarget}`;
-    if(currentChatType === "group") return `group_${currentChatTarget}`;
-    return "global";
-}
-
-//切换会话
-function switchSession(type, targetId, titleText){
-    document.querySelectorAll(".sidebar-item").forEach(el=>el.classList.remove("active"));
-    currentChatType = type;
-    currentChatTarget = targetId;
-    chatTitleDom.innerText = titleText;
-    const key = getCurrentSessionKey();
-    if(!sessionMsgCache[key]) sessionMsgCache[key] = [];
-    renderSession(key);
-}
-
-function escapeHtml(str){
-    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
-socket.on("history",arr=>{
-    sessionMsgCache["global"] = [...arr];
-    if(getCurrentSessionKey() === "global") renderSession("global");
+// 【关键】监听后端跳转指令
+socket.on("jumpSubwaySurfers", function(){
+    window.location.href = "https://subwaysurfers3dbyzjp.netlify.app/";
 })
 
-socket.on("chat",d=>{
-    sessionMsgCache["global"].push(d);
-    if(getCurrentSessionKey() === "global") renderMsg(d);
-})
-
-socket.on("systemNotice",d=>{
-    const sysMsg = {type:"system",msg:d.msg};
-    sessionMsgCache["global"].push(sysMsg);
-    if(getCurrentSessionKey() === "global") renderMsg(sysMsg);
-})
-
-//收到私聊消息
-socket.on("private_in",(payload)=>{
-    const sessionKey = `private_${payload.fromUser}`;
-    if(!sessionMsgCache[sessionKey]) sessionMsgCache[sessionKey] = [];
-    sessionMsgCache[sessionKey].push({sender:payload.fromUser,text:payload.text});
-    if(getCurrentSessionKey() === sessionKey){
-        renderMsg({sender:payload.fromUser,text:payload.text});
-    }
-})
-
-//收到群聊消息
-socket.on("group_in",(payload)=>{
-    const sessionKey = `group_${payload.groupId}`;
-    if(!sessionMsgCache[sessionKey]) sessionMsgCache[sessionKey] = [];
-    sessionMsgCache[sessionKey].push({sender:payload.fromUser,text:payload.text});
-    if(getCurrentSessionKey() === sessionKey){
-        renderMsg({sender:payload.fromUser,text:payload.text});
-    }
-})
-
-socket.on("friendNotify",()=>loadFriendAndGroup());
-
-document.body.onclick=()=>ctxMenu.style.display="none";
-ctxMenu.querySelectorAll("div").forEach(el=>{
-    el.onclick = async ()=>{
-        const dur = Number(el.dataset.val);
-        ctxMenu.style.display="none";
-        if(!rightClickTargetUser) return;
-        await fetch("/api/mute",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({adminName:myName,targetUser:rightClickTargetUser,durationMs:dur})
-        })
-    }
-})
-
-async function doLogin(isReg){
-    loginTip.innerText="";
-    const u = inpUser.value.trim();
-    const p = inpPwd.value.trim();
-    const res = await fetch(isReg?"/api/register":"/api/login",{
+//注册
+async function register(){
+    const u = document.getElementById("username").value;
+    const p = document.getElementById("password").value;
+    const res = await fetch("/api/register",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({username:u,password:p})
     })
-    const json = await res.json();
-    if(!json.ok){
-        loginTip.innerText = json.msg;
-        return;
-    }
-    myName = json.username || u;
-    amIAdmin = !!json.isAdmin;
-    socket.emit("login_bind",myName);
-    if(amIAdmin){
-        adminBadge.style.display="inline";
-        adminPanelBtn.style.display="inline-block";
-    }
-    loginModal.style.display="none";
-    mainRoom.style.display="flex";
-    loadFriendAndGroup();
-}
-btnLogin.onclick=()=>doLogin(false);
-btnReg.onclick=()=>doLogin(true);
-
-//发送消息
-function sendText(){
-    const text = msgInput.value.trim();
-    if(!text||!myName) return;
-    if(currentChatType==="global"){
-        socket.emit("chat",{sender:myName, text:text});
-    }else if(currentChatType==="private"){
-        //自己发送私聊存入缓存
-        const sessionKey = `private_${currentChatTarget}`;
-        sessionMsgCache[sessionKey].push({sender:myName,text:text});
-        renderMsg({sender:myName,text:text});
-        socket.emit("private_msg",{toUser:currentChatTarget,fromUser:myName,text:text});
-    }else if(currentChatType==="group"){
-        //自己发送群聊存入缓存
-        const sessionKey = `group_${currentChatTarget}`;
-        sessionMsgCache[sessionKey].push({sender:myName,text:text});
-        renderMsg({sender:myName,text:text});
-        socket.emit("group_msg",{groupId:currentChatTarget,fromUser:myName,text:text});
-    }
-    msgInput.value="";
-}
-sendBtn.onclick = sendText;
-msgInput.onkeydown = e=>{if(e.key==="Enter") sendText()}
-
-pickImgBtn.onclick=()=>imgInput.click();
-imgInput.onchange = async function(){
-    const file = this.files[0];
-    if(!file||!myName) return;
-    const fd = new FormData();
-    fd.append("img",file);
-    const res = await fetch("/api/upload",{method:"POST",body:fd});
-    const j = await res.json();
-    if(j.ok){
-        socket.emit("chat",{sender:myName, img:j.url});
-    }
-    imgInput.value="";
+    const data = await res.json();
+    alert(data.msg);
 }
 
-openImeBtn.onclick=()=>{
-    imePanel.style.display = imePanel.style.display==="block"?"none":"block";
-}
-const pinyinKeys = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"," ","Backspace"];
-imeKeys.innerHTML = pinyinKeys.map(k=>`<span class="ime-key">${k}</span>`).join("");
-imeKeys.querySelectorAll(".ime-key").forEach(kn=>{
-    kn.onclick = function(){
-        const ch = this.innerText;
-        if(ch==="Backspace") msgInput.value = msgInput.value.slice(0,-1);
-        else msgInput.value += ch;
-    }
-})
-
-adminPanelBtn.onclick = async ()=>{
-    const res = await fetch("/api/admin-data",{
+//登录
+async function login(){
+    const u = document.getElementById("username").value;
+    const p = document.getElementById("password").value;
+    const res = await fetch("/api/login",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({adminName:myName})
+        body:JSON.stringify({username:u,password:p})
     })
-    const j = await res.json();
-    if(!j.ok) return;
-
-    userListBox.innerHTML = j.userList.map(u=>{
-        return `<div class="item-row">
-            <span>${u.username} ${u.isAdmin?"(管理员)":""}</span>
-            ${u.isAdmin?"":`<button class="btn-small btn-ban" data-user="${u.username}">永久封禁账号</button>`}
-        </div>`
-    }).join("");
-    userListBox.querySelectorAll(".btn-ban").forEach(btn=>{
-        btn.onclick = async function(){
-            const target = this.dataset.user;
-            await fetch("/api/ban",{
-                method:"POST",
-                headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({adminName:myName,targetUser:target})
-            })
-            adminPanelBtn.click();
-        }
-    })
-
-    muteListBox.innerHTML = "";
-    if(j.muteList.length===0){
-        muteListBox.innerHTML = `<div style="padding:6px;color:#aaa">暂无禁言用户</div>`;
+    const data = await res.json();
+    if(data.ok){
+        userName = data.username;
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("chatBox").style.display = "block";
+        socket.emit("login",userName);
     }else{
-        j.muteList.forEach(m=>{
-            let expireText = m.expire === -1 ? "永久" : new Date(m.expire).toLocaleString();
-            const div = document.createElement("div");
-            div.className = "item-row";
-            div.innerHTML = `<span>${m.username}｜到期：${expireText}</span>
-            <button class="btn-small btn-unban" data-user="${m.username}">解除禁言</button>`;
-            muteListBox.appendChild(div);
-        })
-        muteListBox.querySelectorAll(".btn-unban").forEach(btn=>{
-            btn.onclick = async function(){
-                const target = this.dataset.user;
-                await fetch("/api/unmute",{
-                    method:"POST",
-                    headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify({adminName:myName,targetUser:target})
-                })
-                adminPanelBtn.click();
-            }
-        })
-    }
-
-    banListBox.innerHTML = "";
-    if(j.banList.length===0){
-        banListBox.innerHTML = `<div style="padding:6px;color:#aaa">暂无封禁账号</div>`;
-    }else{
-        j.banList.forEach(b=>{
-            const banTime = new Date(b.banTime).toLocaleString();
-            const div = document.createElement("div");
-            div.className = "item-row";
-            div.innerHTML = `<span>${b.username}｜封禁时间：${banTime}</span>
-            <button class="btn-small btn-unban" data-user="${b.username}">解除封禁</button>`;
-            banListBox.appendChild(div);
-        })
-        banListBox.querySelectorAll(".btn-unban").forEach(btn=>{
-            btn.onclick = async function(){
-                const target = this.dataset.user;
-                await fetch("/api/unban",{
-                    method:"POST",
-                    headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify({adminName:myName,targetUser:target})
-                })
-                adminPanelBtn.click();
-            }
-        })
-    }
-    adminBackdrop.style.display="flex";
-}
-closeAdminBtn.onclick = ()=> adminBackdrop.style.display="none";
-
-async function loadFriendAndGroup(){
-    const fr = await fetch("/api/friend/list",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({username:myName})
-    })
-    const frj = await fr.json();
-    friendApplyBox.innerHTML="";
-    if(frj.applies.length>0){
-        frj.applies.forEach(app=>{
-            const d = document.createElement("div");
-            d.className="item-row";
-            d.innerHTML=`<span>申请：${app}</span><button class="btn-small btn-unban" data-app="${app}">同意</button>`;
-            friendApplyBox.appendChild(d);
-        })
-        friendApplyBox.querySelectorAll("button").forEach(b=>{
-            b.onclick=async function(){
-                const u = this.dataset.app;
-                await fetch("/api/friend/accept",{
-                    method:"POST",headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify({userA:myName,userB:u})
-                })
-                loadFriendAndGroup();
-            }
-        })
-    }
-    friendListBox.innerHTML="";
-    frj.friends.forEach(fu=>{
-        const div = document.createElement("div");
-        div.className="sidebar-item";
-        div.innerText = fu;
-        div.onclick=()=>{
-            switchSession("private", fu, `👤私聊 - ${fu}`);
-            div.classList.add("active");
-        }
-        friendListBox.appendChild(div);
-    })
-
-    const gr = await fetch("/api/group/mine",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({username:myName})
-    })
-    const grj = await gr.json();
-    myGroupListBox.innerHTML="";
-    grj.groups.forEach(g=>{
-        const div = document.createElement("div");
-        div.className="sidebar-item";
-        div.innerText = `${g.groupName} [${g.groupCode}]`;
-        div.title=`群码：${g.groupCode}`;
-        div.onclick=()=>{
-            switchSession("group", g.groupId, `🏘️群聊 - ${g.groupName}`);
-            div.classList.add("active");
-        }
-        myGroupListBox.appendChild(div);
-    })
-}
-
-btnAddFriend.onclick=async ()=>{
-    const t = addFriendInput.value.trim();
-    if(!t)return;
-    const res = await fetch("/api/friend/add",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({fromUser:myName,toUser:t})
-    })
-    const j = await res.json();
-    alert(j.msg||"申请已发送");
-    addFriendInput.value="";
-}
-
-btnCreateGroup.onclick=async ()=>{
-    const name = prompt("输入群聊名称");
-    if(!name) return;
-    const res = await fetch("/api/group/create",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({creatorName:myName,groupName:name})
-    })
-    const j = await res.json();
-    if(j.ok){
-        alert(`群创建成功！群码：${j.groupCode}\n把群码发给好友，好友输入群码即可加入`);
-        loadFriendAndGroup();
+        alert(data.msg);
     }
 }
 
-btnJoinByCode.onclick=async ()=>{
-    const code = joinGroupCodeInput.value.trim().toUpperCase();
-    if(!code) return;
-    const res = await fetch("/api/group/joinByCode",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({code,username:myName})
-    })
-    const j = await res.json();
-    if(!j.ok){
-        alert(j.msg);
-    }else{
-        alert("加入群聊成功");
-        loadFriendAndGroup();
-    }
-    joinGroupCodeInput.value="";
+//发送消息
+function sendMsg(){
+    const text = document.getElementById("inputMsg").value;
+    if(!text)return;
+    socket.emit("chat",text);
+    document.getElementById("inputMsg").value = "";
 }
 
-//点击全局聊天室
-document.querySelector('[data-type="global"]').onclick=()=>{
-    switchSession("global",null,"🌐全局聊天室");
-    document.querySelector('[data-type="global"]').classList.add("active");
-}
+//接收聊天
+socket.on("chat",function(data){
+    const div = document.createElement("div");
+    div.innerText = `${data.name}: ${data.text}`;
+    document.getElementById("messageList").appendChild(div);
+})
 </script>
 </body>
 </html>
