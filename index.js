@@ -17,14 +17,20 @@ const FRIEND_FILE = './friends.json';
 const GROUP_FILE = './groups.json';
 const UPLOAD_DIR = './public/uploads';
 
-if (!fs.existsSync(USER_FILE)) fs.writeFileSync(USER_FILE, JSON.stringify([]));
-if (!fs.existsSync(MSG_FILE)) fs.writeFileSync(MSG_FILE, JSON.stringify([]));
-if (!fs.existsSync(MUTE_FILE)) fs.writeFileSync(MUTE_FILE, JSON.stringify([]));
-if (!fs.existsSync(BAN_FILE)) fs.writeFileSync(BAN_FILE, JSON.stringify([]));
-if (!fs.existsSync(FRIEND_FILE)) fs.writeFileSync(FRIEND_FILE, JSON.stringify([]));
-if (!fs.existsSync(GROUP_FILE)) fs.writeFileSync(GROUP_FILE, JSON.stringify([]));
-if (!fs.existsSync('./public')) fs.mkdirSync('./public');
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
+//安全初始化文件
+function initFile(filePath, defaultData){
+    if(!fs.existsSync(filePath)){
+        fs.writeFileSync(filePath, JSON.stringify(defaultData));
+    }
+}
+initFile(USER_FILE, []);
+initFile(MSG_FILE, []);
+initFile(MUTE_FILE, []);
+initFile(BAN_FILE, []);
+initFile(FRIEND_FILE, []);
+initFile(GROUP_FILE, []);
+if(!fs.existsSync('./public')) fs.mkdirSync('./public');
+if(!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, UPLOAD_DIR),
@@ -35,7 +41,7 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage: storage });
 
-// 文件读写工具
+//文件读写工具
 function loadUsers() { return JSON.parse(fs.readFileSync(USER_FILE, 'utf8')); }
 function saveUser(u) {
     let arr = loadUsers();
