@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IM 聊天室</title>
+  <title>IM 极速聊天室</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
   <style>
@@ -18,7 +18,7 @@
     <div class="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
       <h2 id="auth-title" class="text-2xl font-bold text-center mb-5 text-indigo-400">登录 IM 聊天室</h2>
       
-      <!-- 注册时显示的头像上传 -->
+      <!-- 注册时头像上传 -->
       <div id="auth-avatar-section" class="hidden flex-col items-center mb-4">
         <div class="relative group cursor-pointer" onclick="document.getElementById('register-avatar-file').click()">
           <img id="register-avatar-preview" src="https://api.dicebear.com/7.x/avataaars/svg?seed=welcome" class="w-16 h-16 rounded-full border-2 border-indigo-500 object-cover">
@@ -40,13 +40,12 @@
     </div>
   </div>
 
-  <!-- 主应用界面 -->
+  <!-- 主界面布局 -->
   <div id="app-layout" class="flex flex-1 h-full overflow-hidden relative">
     
-    <!-- 左侧功能栏 -->
+    <!-- 左侧侧边栏 -->
     <aside id="sidebar" class="w-72 bg-gray-800 border-r border-gray-700 flex flex-col transition-all duration-300 z-30 absolute md:static inset-y-0 -translate-x-full md:translate-x-0">
       
-      <!-- 个人信息头 -->
       <div class="p-4 border-b border-gray-700 flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div class="relative cursor-pointer group" onclick="openModal('settings-modal')">
@@ -61,7 +60,6 @@
         <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white">✕</button>
       </div>
 
-      <!-- 导航列表 -->
       <div class="flex-1 overflow-y-auto hide-scrollbar p-3 space-y-5">
         <div>
           <p class="text-[11px] font-bold text-gray-400 uppercase px-2 mb-1">主频道</p>
@@ -98,7 +96,6 @@
         </div>
       </div>
 
-      <!-- 底部系统栏 -->
       <div class="p-3 border-t border-gray-700 flex justify-between items-center bg-gray-800/80">
         <button onclick="openModal('settings-modal')" class="flex items-center space-x-1 text-xs text-gray-300 hover:text-white">
           <span>⚙ 设置头像</span>
@@ -109,10 +106,9 @@
       </div>
     </aside>
 
-    <!-- 中间聊天主体 -->
+    <!-- 中间聊天区 -->
     <main class="flex-1 flex flex-col bg-gray-900 relative">
       
-      <!-- 顶部状态栏 -->
       <header class="h-14 bg-gray-800/80 backdrop-blur border-b border-gray-700 flex items-center justify-between px-4">
         <div class="flex items-center space-x-3">
           <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg">☰</button>
@@ -125,35 +121,29 @@
         </div>
       </header>
 
-      <!-- 消息流容器 -->
       <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
 
       <!-- 底部输入框容器 (精确高度 48px) -->
       <div class="p-3 bg-gray-800 border-t border-gray-700">
         <div class="h-[48px] max-w-4xl mx-auto flex items-center bg-gray-700 rounded-xl px-3 border border-gray-600 focus-within:border-indigo-500 transition">
-          
-          <!-- 上传图片按钮 -->
           <input type="file" id="chat-image-input" accept="image/*" class="hidden" onchange="handleSendImage(event)">
           <button onclick="document.getElementById('chat-image-input').click()" title="发送照片" class="mr-2 text-gray-400 hover:text-indigo-400 text-lg transition">
             📷
           </button>
-
-          <!-- 文本输入框 -->
           <textarea id="message-input" rows="1" placeholder="输入消息 (Enter 发送, Shift+Enter 换行)..." 
             class="flex-1 bg-transparent resize-none outline-none text-sm text-white max-h-[36px] hide-scrollbar leading-tight"></textarea>
-          
           <button onclick="sendTextMessage()" class="ml-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3.5 py-1.5 text-xs font-semibold">发送</button>
         </div>
       </div>
     </main>
   </div>
 
-  <!-- 弹窗：大图预览 -->
+  <!-- 大图查看模态框 -->
   <div id="image-viewer-modal" class="fixed inset-0 z-50 bg-black/90 hidden items-center justify-center p-4" onclick="closeModal('image-viewer-modal')">
     <img id="image-viewer-img" src="" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
   </div>
 
-  <!-- 弹窗：头像设置 -->
+  <!-- 修改头像模态框 -->
   <div id="settings-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
     <div class="bg-gray-800 rounded-xl p-5 w-full max-w-sm border border-gray-700 space-y-4">
       <h3 class="font-bold text-white text-base">修改自定义头像</h3>
@@ -169,7 +159,7 @@
     </div>
   </div>
 
-  <!-- 弹窗：添加好友 -->
+  <!-- 添加好友模态框 -->
   <div id="add-friend-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
     <div class="bg-gray-800 rounded-xl p-5 w-full max-w-sm border border-gray-700 space-y-3">
       <h3 class="font-bold text-white">添加好友</h3>
@@ -181,7 +171,7 @@
     </div>
   </div>
 
-  <!-- 弹窗：创建群聊 -->
+  <!-- 创建群聊模态框 -->
   <div id="create-group-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
     <div class="bg-gray-800 rounded-xl p-5 w-full max-w-sm border border-gray-700 space-y-3">
       <h3 class="font-bold text-white">创建群聊</h3>
@@ -193,7 +183,7 @@
     </div>
   </div>
 
-  <!-- 弹窗：加入群聊 -->
+  <!-- 加入群聊模态框 -->
   <div id="join-group-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
     <div class="bg-gray-800 rounded-xl p-5 w-full max-w-sm border border-gray-700 space-y-3">
       <h3 class="font-bold text-white">加入群聊</h3>
@@ -205,7 +195,7 @@
     </div>
   </div>
 
-  <!-- 弹窗：管理员控制台 -->
+  <!-- 管理员控制台 -->
   <div id="admin-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
     <div class="bg-gray-800 rounded-xl p-5 w-full max-w-2xl border border-gray-700 space-y-4">
       <div class="flex justify-between items-center border-b border-gray-700 pb-3">
@@ -249,7 +239,6 @@
         document.getElementById('auth-modal').classList.remove('hidden');
       }
 
-      // 绑定回车发送
       const input = document.getElementById('message-input');
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -270,25 +259,17 @@
     }
 
     function previewAuthAvatar(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        registeredAvatarBase64 = reader.result;
-        document.getElementById('register-avatar-preview').src = reader.result;
-      };
-      reader.readAsDataURL(file);
+      compressImageFile(e.target.files[0], 200, (base64) => {
+        registeredAvatarBase64 = base64;
+        document.getElementById('register-avatar-preview').src = base64;
+      });
     }
 
     function previewSettingsAvatar(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        updatedAvatarBase64 = reader.result;
-        document.getElementById('settings-avatar-preview').src = reader.result;
-      };
-      reader.readAsDataURL(file);
+      compressImageFile(e.target.files[0], 200, (base64) => {
+        updatedAvatarBase64 = base64;
+        document.getElementById('settings-avatar-preview').src = base64;
+      });
     }
 
     async function saveAvatarSettings() {
@@ -363,10 +344,13 @@
         logout();
       });
 
+      // 接收其他人的实时消息
       socket.on('new_message', (msg) => {
+        if (msg.senderId === currentUser.id) return; // 已经乐观更新，跳过
+
         if (
           (activeChannel.type === 'public' && msg.targetType === 'public') ||
-          (activeChannel.type === 'direct' && msg.targetType === 'direct' && (msg.senderId === activeChannel.id || msg.senderId === currentUser.id)) ||
+          (activeChannel.type === 'direct' && msg.targetType === 'direct' && msg.senderId === activeChannel.id) ||
           (activeChannel.type === 'group' && msg.targetType === 'group' && msg.targetId === activeChannel.id)
         ) {
           appendMessageBubble(msg);
@@ -386,7 +370,7 @@
 
     async function loadHistoryMessages() {
       const container = document.getElementById('messages-container');
-      container.innerHTML = '<div class="text-center text-xs text-gray-500 my-2">加载历史消息中...</div>';
+      container.innerHTML = '<div class="text-center text-xs text-gray-500 my-2">正在载入历史消息...</div>';
       
       const res = await fetch(`/api/messages?type=${activeChannel.type}&id=${activeChannel.id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -401,7 +385,6 @@
       const res = await fetch('/api/initial-data', { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       
-      // 渲染好友
       const fContainer = document.getElementById('friends-list');
       fContainer.innerHTML = '';
       data.friends.forEach(f => {
@@ -412,7 +395,6 @@
         fContainer.appendChild(btn);
       });
 
-      // 渲染待处理好友请求
       const pContainer = document.getElementById('pending-requests');
       pContainer.innerHTML = '';
       data.pendingRequests.forEach(req => {
@@ -428,7 +410,6 @@
         pContainer.appendChild(div);
       });
 
-      // 渲染群聊
       const gContainer = document.getElementById('groups-list');
       gContainer.innerHTML = '';
       data.groups.forEach(g => {
@@ -504,10 +485,25 @@
       return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
+    // 核心优化 1：乐观发送，0ms 本地上屏
     function sendTextMessage() {
       const input = document.getElementById('message-input');
       const content = input.value.trim();
       if (!content || !socket) return;
+
+      const tempMsg = {
+        id: 'temp_' + Date.now(),
+        senderId: currentUser.id,
+        senderName: currentUser.username,
+        senderAvatar: currentUser.avatar,
+        targetType: activeChannel.type,
+        targetId: activeChannel.id,
+        messageType: 'text',
+        content,
+        createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      appendMessageBubble(tempMsg);
+      input.value = '';
 
       socket.emit('send_message', {
         targetType: activeChannel.type,
@@ -515,21 +511,54 @@
         messageType: 'text',
         content
       });
-      input.value = '';
     }
 
+    // 核心优化 2：图片前端压缩至 800px / 0.7 质量再发送
     function handleSendImage(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
+      compressImageFile(e.target.files[0], 800, (compressedBase64) => {
+        const tempMsg = {
+          id: 'temp_' + Date.now(),
+          senderId: currentUser.id,
+          senderName: currentUser.username,
+          senderAvatar: currentUser.avatar,
+          targetType: activeChannel.type,
+          targetId: activeChannel.id,
+          messageType: 'image',
+          content: compressedBase64,
+          createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        appendMessageBubble(tempMsg);
+
         socket.emit('send_message', {
           targetType: activeChannel.type,
           targetId: activeChannel.id,
           messageType: 'image',
-          content: reader.result
+          content: compressedBase64
         });
-        e.target.value = ''; // 清空选择
+        e.target.value = '';
+      });
+    }
+
+    function compressImageFile(file, maxWidth, callback) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth) {
+            h = Math.round((h * maxWidth) / w);
+            w = maxWidth;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          callback(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
