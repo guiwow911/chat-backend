@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IM Messenger</title>
+  <title>IM 聊天室</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
   <style>
@@ -16,12 +16,23 @@
   <!-- 登录 / 注册 模态框 -->
   <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
     <div class="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
-      <h2 id="auth-title" class="text-2xl font-bold text-center mb-6 text-indigo-400">登录 IM 聊天室</h2>
+      <h2 id="auth-title" class="text-2xl font-bold text-center mb-5 text-indigo-400">登录 IM 聊天室</h2>
+      
+      <!-- 注册时显示的头像上传 -->
+      <div id="auth-avatar-section" class="hidden flex-col items-center mb-4">
+        <div class="relative group cursor-pointer" onclick="document.getElementById('register-avatar-file').click()">
+          <img id="register-avatar-preview" src="https://api.dicebear.com/7.x/avataaars/svg?seed=welcome" class="w-16 h-16 rounded-full border-2 border-indigo-500 object-cover">
+          <div class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center text-[10px] text-white opacity-0 group-hover:opacity-100 transition">更换头像</div>
+        </div>
+        <input id="register-avatar-file" type="file" accept="image/*" class="hidden" onchange="previewAuthAvatar(event)">
+        <span class="text-[11px] text-gray-400 mt-1">点击设置头像 (可选)</span>
+      </div>
+
       <div class="space-y-4">
         <input id="auth-username" type="text" placeholder="用户名" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 text-sm text-white">
         <input id="auth-password" type="password" placeholder="密码" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 text-sm text-white">
         <p id="auth-error" class="text-red-400 text-xs hidden"></p>
-        <button id="auth-submit-btn" onclick="handleAuthSubmit()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg transition duration-200">登录</button>
+        <button id="auth-submit-btn" onclick="handleAuthSubmit()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg transition">登录</button>
         <div class="text-center">
           <button id="auth-toggle-btn" onclick="toggleAuthMode()" class="text-xs text-gray-400 hover:text-indigo-400 transition">没有账号？去注册</button>
         </div>
@@ -29,7 +40,7 @@
     </div>
   </div>
 
-  <!-- 主界面 -->
+  <!-- 主应用界面 -->
   <div id="app-layout" class="flex flex-1 h-full overflow-hidden relative">
     
     <!-- 左侧功能栏 -->
@@ -38,68 +49,62 @@
       <!-- 个人信息头 -->
       <div class="p-4 border-b border-gray-700 flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <img id="my-avatar" class="w-10 h-10 rounded-full bg-gray-700 border border-gray-600" src="" alt="Avatar">
+          <div class="relative cursor-pointer group" onclick="openModal('settings-modal')">
+            <img id="my-avatar" class="w-10 h-10 rounded-full bg-gray-700 border border-gray-600 object-cover" src="" alt="Avatar">
+            <div class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-[8px] text-white opacity-0 group-hover:opacity-100">换头像</div>
+          </div>
           <div class="overflow-hidden">
             <h3 id="my-username" class="text-sm font-semibold truncate text-white">加载中...</h3>
-            <span id="my-role" class="text-xs px-2 py-0.5 rounded-full bg-indigo-900/50 text-indigo-300">用户</span>
+            <span id="my-role" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-900/50 text-indigo-300">用户</span>
           </div>
         </div>
         <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white">✕</button>
       </div>
 
       <!-- 导航列表 -->
-      <div class="flex-1 overflow-y-auto hide-scrollbar p-3 space-y-6">
-        
-        <!-- 主频道列表 -->
+      <div class="flex-1 overflow-y-auto hide-scrollbar p-3 space-y-5">
         <div>
-          <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-1">通讯列表</p>
+          <p class="text-[11px] font-bold text-gray-400 uppercase px-2 mb-1">主频道</p>
           <button onclick="switchChannel('public', 'public', '🌐 公共频道')" id="nav-public" class="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm bg-indigo-600 text-white font-medium">
             <span>🌐</span> <span>公共频道</span>
           </button>
         </div>
 
-        <!-- 好友列表 -->
         <div>
           <div class="flex items-center justify-between px-2 mb-1">
-            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">👥 好友</p>
+            <p class="text-[11px] font-bold text-gray-400 uppercase">👥 好友</p>
             <button onclick="openModal('add-friend-modal')" class="text-xs text-indigo-400 hover:underline">➕ 添加</button>
           </div>
-          <div id="friends-list" class="space-y-1">
-            <!-- 好友动态插入 -->
-          </div>
+          <div id="friends-list" class="space-y-1"></div>
           <div id="pending-requests" class="mt-2 space-y-1"></div>
         </div>
 
-        <!-- 我的群聊 -->
         <div>
           <div class="flex items-center justify-between px-2 mb-1">
-            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">👨‍👩‍👧 我的群聊</p>
+            <p class="text-[11px] font-bold text-gray-400 uppercase">👨‍👩‍👧 我的群聊</p>
             <div class="space-x-1">
               <button onclick="openModal('create-group-modal')" class="text-xs text-indigo-400 hover:underline">➕ 建群</button>
               <button onclick="openModal('join-group-modal')" class="text-xs text-indigo-400 hover:underline">🔑 加入</button>
             </div>
           </div>
-          <div id="groups-list" class="space-y-1">
-            <!-- 群聊动态插入 -->
-          </div>
+          <div id="groups-list" class="space-y-1"></div>
         </div>
 
-        <!-- 管理员面板入口 -->
         <div id="admin-menu-section" class="hidden">
-          <p class="text-[11px] font-bold text-red-400 uppercase tracking-wider px-2 mb-1">管理系统</p>
+          <p class="text-[11px] font-bold text-red-400 uppercase px-2 mb-1">系统管理</p>
           <button onclick="openModal('admin-modal'); fetchAdminUsers();" class="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm hover:bg-gray-700 text-gray-300">
             <span>⚙</span> <span>管理员控制台</span>
           </button>
         </div>
       </div>
 
-      <!-- 底部系统设置 -->
+      <!-- 底部系统栏 -->
       <div class="p-3 border-t border-gray-700 flex justify-between items-center bg-gray-800/80">
-        <button onclick="alert('主题默认开启：Discord/Telegram 深色模式')" class="flex items-center space-x-2 text-xs text-gray-400 hover:text-white">
-          <span>⚙ 设置</span>
+        <button onclick="openModal('settings-modal')" class="flex items-center space-x-1 text-xs text-gray-300 hover:text-white">
+          <span>⚙ 设置头像</span>
         </button>
         <button onclick="logout()" class="flex items-center space-x-1 text-xs text-red-400 hover:text-red-300">
-          <span>🚪 退出登录</span>
+          <span>🚪 退出</span>
         </button>
       </div>
     </aside>
@@ -114,26 +119,54 @@
           <h2 id="current-chat-title" class="font-semibold text-white">🌐 公共频道</h2>
         </div>
         <div id="group-code-display" class="hidden text-xs bg-gray-700 px-3 py-1.5 rounded-full flex items-center space-x-2">
-          <span class="text-gray-400">群号:</span>
+          <span class="text-gray-400">群邀请码:</span>
           <span id="current-group-code" class="font-mono text-indigo-400 font-bold"></span>
           <button onclick="copyGroupCode()" class="text-gray-300 hover:text-white ml-1">📋 复制</button>
         </div>
       </header>
 
-      <!-- 消息列表滚动区域 -->
-      <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4">
-        <!-- 动态消息渲染 -->
-      </div>
+      <!-- 消息流容器 -->
+      <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
 
-      <!-- 底部输入框容器 (高度控制在 48px 左右) -->
+      <!-- 底部输入框容器 (精确高度 48px) -->
       <div class="p-3 bg-gray-800 border-t border-gray-700">
-        <div class="h-[48px] max-w-4xl mx-auto flex items-center bg-gray-700 rounded-xl px-3 border border-gray-600 focus-within:border-indigo-500 transition duration-150">
-          <textarea id="message-input" rows="1" placeholder="发送消息 (Enter 发送, Shift+Enter 换行)..." 
+        <div class="h-[48px] max-w-4xl mx-auto flex items-center bg-gray-700 rounded-xl px-3 border border-gray-600 focus-within:border-indigo-500 transition">
+          
+          <!-- 上传图片按钮 -->
+          <input type="file" id="chat-image-input" accept="image/*" class="hidden" onchange="handleSendImage(event)">
+          <button onclick="document.getElementById('chat-image-input').click()" title="发送照片" class="mr-2 text-gray-400 hover:text-indigo-400 text-lg transition">
+            📷
+          </button>
+
+          <!-- 文本输入框 -->
+          <textarea id="message-input" rows="1" placeholder="输入消息 (Enter 发送, Shift+Enter 换行)..." 
             class="flex-1 bg-transparent resize-none outline-none text-sm text-white max-h-[36px] hide-scrollbar leading-tight"></textarea>
-          <button onclick="sendMessage()" class="ml-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3.5 py-1.5 text-xs font-semibold">发送</button>
+          
+          <button onclick="sendTextMessage()" class="ml-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3.5 py-1.5 text-xs font-semibold">发送</button>
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- 弹窗：大图预览 -->
+  <div id="image-viewer-modal" class="fixed inset-0 z-50 bg-black/90 hidden items-center justify-center p-4" onclick="closeModal('image-viewer-modal')">
+    <img id="image-viewer-img" src="" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
+  </div>
+
+  <!-- 弹窗：头像设置 -->
+  <div id="settings-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
+    <div class="bg-gray-800 rounded-xl p-5 w-full max-w-sm border border-gray-700 space-y-4">
+      <h3 class="font-bold text-white text-base">修改自定义头像</h3>
+      <div class="flex flex-col items-center space-y-3">
+        <img id="settings-avatar-preview" class="w-20 h-20 rounded-full border-2 border-indigo-500 object-cover" src="">
+        <input type="file" id="settings-avatar-file" accept="image/*" class="hidden" onchange="previewSettingsAvatar(event)">
+        <button onclick="document.getElementById('settings-avatar-file').click()" class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-1.5 rounded">选择本地照片</button>
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="closeModal('settings-modal')" class="px-3 py-1.5 text-xs text-gray-400">取消</button>
+        <button onclick="saveAvatarSettings()" class="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded">保存头像</button>
+      </div>
+    </div>
   </div>
 
   <!-- 弹窗：添加好友 -->
@@ -176,7 +209,7 @@
   <div id="admin-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
     <div class="bg-gray-800 rounded-xl p-5 w-full max-w-2xl border border-gray-700 space-y-4">
       <div class="flex justify-between items-center border-b border-gray-700 pb-3">
-        <h3 class="font-bold text-white">系统用户管理（后端验证权限）</h3>
+        <h3 class="font-bold text-white">系统用户管理（后端权限鉴权）</h3>
         <button onclick="closeModal('admin-modal')" class="text-gray-400 hover:text-white">✕</button>
       </div>
       <div class="max-h-80 overflow-y-auto">
@@ -189,9 +222,7 @@
               <th class="p-2 text-right">操作</th>
             </tr>
           </thead>
-          <tbody id="admin-user-table" class="divide-y divide-gray-700">
-            <!-- 动态渲染管理员列表 -->
-          </tbody>
+          <tbody id="admin-user-table" class="divide-y divide-gray-700"></tbody>
         </table>
       </div>
     </div>
@@ -201,6 +232,8 @@
     let token = localStorage.getItem('token');
     let currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     let isRegisterMode = false;
+    let registeredAvatarBase64 = '';
+    let updatedAvatarBase64 = '';
     let socket = null;
 
     let activeChannel = { type: 'public', id: 'public', name: '🌐 公共频道', code: '' };
@@ -211,16 +244,17 @@
         renderUserProfile();
         connectSocket();
         fetchInitialData();
+        loadHistoryMessages();
       } else {
         document.getElementById('auth-modal').classList.remove('hidden');
       }
 
-      // 回车监听
+      // 绑定回车发送
       const input = document.getElementById('message-input');
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
-          sendMessage();
+          sendTextMessage();
         }
       });
     }
@@ -230,6 +264,47 @@
       document.getElementById('auth-title').innerText = isRegisterMode ? '注册 IM 账号' : '登录 IM 聊天室';
       document.getElementById('auth-submit-btn').innerText = isRegisterMode ? '注册并登录' : '登录';
       document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? '已有账号？去登录' : '没有账号？去注册';
+      const avatarSec = document.getElementById('auth-avatar-section');
+      if (isRegisterMode) avatarSec.classList.remove('hidden');
+      else avatarSec.classList.add('hidden');
+    }
+
+    function previewAuthAvatar(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        registeredAvatarBase64 = reader.result;
+        document.getElementById('register-avatar-preview').src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function previewSettingsAvatar(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        updatedAvatarBase64 = reader.result;
+        document.getElementById('settings-avatar-preview').src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function saveAvatarSettings() {
+      if (!updatedAvatarBase64) return alert('请先选择新头像图片');
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ avatar: updatedAvatarBase64 })
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error);
+      currentUser.avatar = data.avatar;
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      renderUserProfile();
+      closeModal('settings-modal');
+      alert('头像更新成功！');
     }
 
     async function handleAuthSubmit() {
@@ -239,11 +314,16 @@
       errBox.classList.add('hidden');
 
       const endpoint = isRegisterMode ? '/api/register' : '/api/login';
+      const payload = { username, password };
+      if (isRegisterMode && registeredAvatarBase64) {
+        payload.avatar = registeredAvatarBase64;
+      }
+
       try {
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '操作失败');
@@ -257,6 +337,7 @@
         renderUserProfile();
         connectSocket();
         fetchInitialData();
+        loadHistoryMessages();
       } catch (err) {
         errBox.innerText = err.message;
         errBox.classList.remove('hidden');
@@ -265,6 +346,7 @@
 
     function renderUserProfile() {
       document.getElementById('my-avatar').src = currentUser.avatar;
+      document.getElementById('settings-avatar-preview').src = currentUser.avatar;
       document.getElementById('my-username').innerText = currentUser.username;
       const roleBadge = document.getElementById('my-role');
       roleBadge.innerText = currentUser.role === 'admin' ? '管理员' : '普通用户';
@@ -277,7 +359,7 @@
       socket = io({ auth: { token } });
 
       socket.on('connect_error', (err) => {
-        alert('连接已断开: ' + err.message);
+        alert('连接异常: ' + err.message);
         logout();
       });
 
@@ -294,40 +376,51 @@
       socket.on('friend_request_received', () => fetchInitialData());
       socket.on('friend_request_updated', () => fetchInitialData());
       socket.on('user_status_changed', (data) => {
-        if (data.userId === currentUser.id) {
-          if (data.isBanned) {
-            alert('您的账号已被管理员封禁！');
-            logout();
-          }
+        if (data.userId === currentUser.id && data.isBanned) {
+          alert('您的账号已被管理员封禁！');
+          logout();
         }
       });
       socket.on('error_message', (txt) => alert(txt));
+    }
+
+    async function loadHistoryMessages() {
+      const container = document.getElementById('messages-container');
+      container.innerHTML = '<div class="text-center text-xs text-gray-500 my-2">加载历史消息中...</div>';
+      
+      const res = await fetch(`/api/messages?type=${activeChannel.type}&id=${activeChannel.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const history = await res.json();
+      container.innerHTML = '';
+      history.forEach(msg => appendMessageBubble(msg, false));
+      container.scrollTop = container.scrollHeight;
     }
 
     async function fetchInitialData() {
       const res = await fetch('/api/initial-data', { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       
-      // 好友列表
+      // 渲染好友
       const fContainer = document.getElementById('friends-list');
       fContainer.innerHTML = '';
       data.friends.forEach(f => {
         const btn = document.createElement('button');
         btn.className = "w-full flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-700 text-gray-300 truncate";
-        btn.innerHTML = `<img src="${f.avatar}" class="w-5 h-5 rounded-full"><span>${f.username}</span>`;
+        btn.innerHTML = `<img src="${f.avatar}" class="w-5 h-5 rounded-full object-cover"><span>${f.username}</span>`;
         btn.onclick = () => switchChannel('direct', f.id, `💬 ${f.username}`);
         fContainer.appendChild(btn);
       });
 
-      // 好友申请
+      // 渲染待处理好友请求
       const pContainer = document.getElementById('pending-requests');
       pContainer.innerHTML = '';
       data.pendingRequests.forEach(req => {
         const div = document.createElement('div');
         div.className = "bg-gray-700/60 p-2 rounded text-xs flex items-center justify-between";
         div.innerHTML = `
-          <span>${req.requester.username} 请求好友</span>
-          <div class="space-x-1">
+          <span class="truncate">${req.requester.username} 请求好友</span>
+          <div class="space-x-1 flex-shrink-0">
             <button onclick="respondFriend('${req.id}', true)" class="text-green-400 hover:underline">接受</button>
             <button onclick="respondFriend('${req.id}', false)" class="text-red-400 hover:underline">拒绝</button>
           </div>
@@ -335,7 +428,7 @@
         pContainer.appendChild(div);
       });
 
-      // 群聊列表
+      // 渲染群聊
       const gContainer = document.getElementById('groups-list');
       gContainer.innerHTML = '';
       data.groups.forEach(g => {
@@ -360,30 +453,37 @@
       } else {
         codeBox.classList.add('hidden');
       }
-      document.getElementById('messages-container').innerHTML = '';
+      loadHistoryMessages();
     }
 
-    function appendMessageBubble(msg) {
+    function appendMessageBubble(msg, autoScroll = true) {
       const isMe = msg.senderId === currentUser.id;
       const box = document.getElementById('messages-container');
       
       const el = document.createElement('div');
       el.className = `flex items-start space-x-2.5 ${isMe ? 'flex-row-reverse space-x-reverse' : ''} mb-4`;
       
+      let contentHtml = '';
+      if (msg.messageType === 'image') {
+        contentHtml = `<img src="${msg.content}" class="max-w-[240px] max-h-[240px] rounded-lg cursor-pointer hover:opacity-90 transition object-cover" onclick="viewLargeImage('${msg.content}')" alt="照片">`;
+      } else {
+        contentHtml = parseMessageText(msg.content);
+      }
+
       el.innerHTML = `
-        <img class="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0" src="${msg.senderAvatar}" alt="">
+        <img class="w-8 h-8 rounded-full bg-gray-700 object-cover flex-shrink-0" src="${msg.senderAvatar}" alt="">
         <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[75%]">
           <div class="flex items-center space-x-2 text-[11px] text-gray-400 mb-0.5">
             <span class="font-medium">${msg.senderName}</span>
             <span>${msg.createdAt}</span>
           </div>
-          <div class="p-3 rounded-2xl text-sm leading-relaxed ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-gray-800 text-gray-100 rounded-tl-none border border-gray-700'}">
-            ${parseMessageText(msg.content)}
+          <div class="p-2.5 rounded-2xl text-sm leading-relaxed ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-gray-800 text-gray-100 rounded-tl-none border border-gray-700'}">
+            ${contentHtml}
           </div>
         </div>
       `;
       box.appendChild(el);
-      box.scrollTop = box.scrollHeight;
+      if (autoScroll) box.scrollTop = box.scrollHeight;
     }
 
     function parseMessageText(text) {
@@ -404,7 +504,7 @@
       return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    function sendMessage() {
+    function sendTextMessage() {
       const input = document.getElementById('message-input');
       const content = input.value.trim();
       if (!content || !socket) return;
@@ -412,9 +512,31 @@
       socket.emit('send_message', {
         targetType: activeChannel.type,
         targetId: activeChannel.id,
+        messageType: 'text',
         content
       });
       input.value = '';
+    }
+
+    function handleSendImage(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        socket.emit('send_message', {
+          targetType: activeChannel.type,
+          targetId: activeChannel.id,
+          messageType: 'image',
+          content: reader.result
+        });
+        e.target.value = ''; // 清空选择
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function viewLargeImage(src) {
+      document.getElementById('image-viewer-img').src = src;
+      openModal('image-viewer-modal');
     }
 
     async function submitFriendRequest() {
