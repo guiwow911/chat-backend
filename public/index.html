@@ -1,236 +1,533 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>匿名聊天室</title>
-
-    <link
-        rel="stylesheet"
-        href="/style.css"
-    >
-
-    <script src="/socket.io/socket.io.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IM Messenger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
 </head>
+<body class="bg-gray-900 text-gray-100 h-screen w-screen overflow-hidden flex flex-col font-sans antialiased">
 
-<body>
-
-<!-- ================= 登录 ================= -->
-
-<div id="authPage" class="auth-page">
-
-    <div class="auth-card">
-
-        <div class="logo">
-            💬
+  <!-- 登录 / 注册 模态框 -->
+  <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+    <div class="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl">
+      <h2 id="auth-title" class="text-2xl font-bold text-center mb-6 text-indigo-400">登录 IM 聊天室</h2>
+      <div class="space-y-4">
+        <input id="auth-username" type="text" placeholder="用户名" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 text-sm text-white">
+        <input id="auth-password" type="password" placeholder="密码" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 text-sm text-white">
+        <p id="auth-error" class="text-red-400 text-xs hidden"></p>
+        <button id="auth-submit-btn" onclick="handleAuthSubmit()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg transition duration-200">登录</button>
+        <div class="text-center">
+          <button id="auth-toggle-btn" onclick="toggleAuthMode()" class="text-xs text-gray-400 hover:text-indigo-400 transition">没有账号？去注册</button>
         </div>
-
-        <h1>匿名聊天室</h1>
-
-        <p class="sub">
-            简洁、快速、匿名交流
-        </p>
-
-        <input
-            id="username"
-            placeholder="用户名"
-            maxlength="32"
-        >
-
-        <input
-            id="password"
-            type="password"
-            placeholder="密码"
-        >
-
-        <button onclick="login()">
-            登录
-        </button>
-
-        <button
-            class="secondary"
-            onclick="register()"
-        >
-            注册账号
-        </button>
-
-        <div id="authError"></div>
-
+      </div>
     </div>
+  </div>
 
-</div>
+  <!-- 主界面 -->
+  <div id="app-layout" class="flex flex-1 h-full overflow-hidden relative">
+    
+    <!-- 左侧功能栏 -->
+    <aside id="sidebar" class="w-72 bg-gray-800 border-r border-gray-700 flex flex-col transition-all duration-300 z-30 absolute md:static inset-y-0 -translate-x-full md:translate-x-0">
+      
+      <!-- 个人信息头 -->
+      <div class="p-4 border-b border-gray-700 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <img id="my-avatar" class="w-10 h-10 rounded-full bg-gray-700 border border-gray-600" src="" alt="Avatar">
+          <div class="overflow-hidden">
+            <h3 id="my-username" class="text-sm font-semibold truncate text-white">加载中...</h3>
+            <span id="my-role" class="text-xs px-2 py-0.5 rounded-full bg-indigo-900/50 text-indigo-300">用户</span>
+          </div>
+        </div>
+        <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white">✕</button>
+      </div>
 
-
-<!-- ================= 主界面 ================= -->
-
-<div id="app" class="app hidden">
-
-    <!-- 侧边栏 -->
-
-    <aside class="sidebar">
-
-        <div class="brand">
-            💬 匿名聊天室
+      <!-- 导航列表 -->
+      <div class="flex-1 overflow-y-auto hide-scrollbar p-3 space-y-6">
+        
+        <!-- 主频道列表 -->
+        <div>
+          <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-2 mb-1">通讯列表</p>
+          <button onclick="switchChannel('public', 'public', '🌐 公共频道')" id="nav-public" class="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm bg-indigo-600 text-white font-medium">
+            <span>🌐</span> <span>公共频道</span>
+          </button>
         </div>
 
-        <div class="profile">
+        <!-- 好友列表 -->
+        <div>
+          <div class="flex items-center justify-between px-2 mb-1">
+            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">👥 好友</p>
+            <button onclick="openModal('add-friend-modal')" class="text-xs text-indigo-400 hover:underline">➕ 添加</button>
+          </div>
+          <div id="friends-list" class="space-y-1">
+            <!-- 好友动态插入 -->
+          </div>
+          <div id="pending-requests" class="mt-2 space-y-1"></div>
+        </div>
 
-            <div class="avatar">
-                👤
+        <!-- 我的群聊 -->
+        <div>
+          <div class="flex items-center justify-between px-2 mb-1">
+            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">👨‍👩‍👧 我的群聊</p>
+            <div class="space-x-1">
+              <button onclick="openModal('create-group-modal')" class="text-xs text-indigo-400 hover:underline">➕ 建群</button>
+              <button onclick="openModal('join-group-modal')" class="text-xs text-indigo-400 hover:underline">🔑 加入</button>
             </div>
-
-            <div>
-                <strong id="myUsername"></strong>
-                <small id="myRole"></small>
-            </div>
-
+          </div>
+          <div id="groups-list" class="space-y-1">
+            <!-- 群聊动态插入 -->
+          </div>
         </div>
 
-        <button
-            class="side-btn active"
-            onclick="openPublic()"
-        >
-            🌎 公共频道
-        </button>
-
-        <button
-            class="side-btn"
-            onclick="showFriends()"
-        >
-            👥 好友
-            <span id="friendBadge"></span>
-        </button>
-
-        <button
-            class="side-btn"
-            onclick="showRooms()"
-        >
-            💬 群聊
-        </button>
-
-        <button
-            class="side-btn"
-            onclick="showFriendRequests()"
-        >
-            🔔 好友申请
-            <span id="requestBadge"></span>
-        </button>
-
-        <div class="sidebar-bottom">
-
-            <button
-                id="adminButton"
-                class="side-btn admin hidden"
-                onclick="showAdmin()"
-            >
-                🛡 管理员
-            </button>
-
-            <button
-                class="side-btn logout"
-                onclick="logout()"
-            >
-                🚪 退出登录
-            </button>
-
+        <!-- 管理员面板入口 -->
+        <div id="admin-menu-section" class="hidden">
+          <p class="text-[11px] font-bold text-red-400 uppercase tracking-wider px-2 mb-1">管理系统</p>
+          <button onclick="openModal('admin-modal'); fetchAdminUsers();" class="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm hover:bg-gray-700 text-gray-300">
+            <span>⚙</span> <span>管理员控制台</span>
+          </button>
         </div>
+      </div>
 
+      <!-- 底部系统设置 -->
+      <div class="p-3 border-t border-gray-700 flex justify-between items-center bg-gray-800/80">
+        <button onclick="alert('主题默认开启：Discord/Telegram 深色模式')" class="flex items-center space-x-2 text-xs text-gray-400 hover:text-white">
+          <span>⚙ 设置</span>
+        </button>
+        <button onclick="logout()" class="flex items-center space-x-1 text-xs text-red-400 hover:text-red-300">
+          <span>🚪 退出登录</span>
+        </button>
+      </div>
     </aside>
 
-
-    <!-- 主聊天 -->
-
-    <main class="main">
-
-        <header class="chat-header">
-
-            <div>
-
-                <h2 id="chatTitle">
-                    🌎 公共频道
-                </h2>
-
-                <span id="chatStatus">
-                    所有人都可以聊天
-                </span>
-
-            </div>
-
-            <div id="headerActions"></div>
-
-        </header>
-
-
-        <section
-            id="messages"
-            class="messages"
-        ></section>
-
-
-        <!-- 输入区域 -->
-
-        <div class="composer">
-
-            <textarea
-                id="messageInput"
-                rows="1"
-                maxlength="2000"
-                placeholder="输入消息..."
-            ></textarea>
-
-            <button
-                onclick="sendMessage()"
-                class="send-btn"
-            >
-                发送
-            </button>
-
+    <!-- 中间聊天主体 -->
+    <main class="flex-1 flex flex-col bg-gray-900 relative">
+      
+      <!-- 顶部状态栏 -->
+      <header class="h-14 bg-gray-800/80 backdrop-blur border-b border-gray-700 flex items-center justify-between px-4">
+        <div class="flex items-center space-x-3">
+          <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white text-lg">☰</button>
+          <h2 id="current-chat-title" class="font-semibold text-white">🌐 公共频道</h2>
         </div>
+        <div id="group-code-display" class="hidden text-xs bg-gray-700 px-3 py-1.5 rounded-full flex items-center space-x-2">
+          <span class="text-gray-400">群号:</span>
+          <span id="current-group-code" class="font-mono text-indigo-400 font-bold"></span>
+          <button onclick="copyGroupCode()" class="text-gray-300 hover:text-white ml-1">📋 复制</button>
+        </div>
+      </header>
 
+      <!-- 消息列表滚动区域 -->
+      <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- 动态消息渲染 -->
+      </div>
+
+      <!-- 底部输入框容器 (高度控制在 48px 左右) -->
+      <div class="p-3 bg-gray-800 border-t border-gray-700">
+        <div class="h-[48px] max-w-4xl mx-auto flex items-center bg-gray-700 rounded-xl px-3 border border-gray-600 focus-within:border-indigo-500 transition duration-150">
+          <textarea id="message-input" rows="1" placeholder="发送消息 (Enter 发送, Shift+Enter 换行)..." 
+            class="flex-1 bg-transparent resize-none outline-none text-sm text-white max-h-[36px] hide-scrollbar leading-tight"></textarea>
+          <button onclick="sendMessage()" class="ml-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3.5 py-1.5 text-xs font-semibold">发送</button>
+        </div>
+      </div>
     </main>
+  </div>
 
-
-    <!-- 右侧面板 -->
-
-    <aside
-        id="rightPanel"
-        class="right-panel hidden"
-    ></aside>
-
-</div>
-
-
-<!-- ================= 弹窗 ================= -->
-
-<div
-    id="modal"
-    class="modal hidden"
->
-
-    <div class="modal-card">
-
-        <button
-            class="close"
-            onclick="closeModal()"
-        >
-            ×
-        </button>
-
-        <div id="modalContent"></div>
-
+  <!-- 弹窗：添加好友 -->
+  <div id="add-friend-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
+    <div class="bg-gray-800 rounded-xl p-5 w-full max-w-sm border border-gray-700 space-y-3">
+      <h3 class="font-bold text-white">添加好友</h3>
+      <input id="add-friend-username" type="text" placeholder="输入对方用户名" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white outline-none">
+      <div class="flex justify-end space-x-2">
+        <button onclick="closeModal('add-friend-modal')" class="px-3 py-1.5 text-xs text-gray-400">取消</button>
+        <button onclick="submitFriendRequest()" class="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded">发送申请</button>
+      </div>
     </div>
+  </div>
 
-</div>
+  <!-- 弹窗：创建群聊 -->
+  <div id="create-group-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
+    <div class="bg-gray-800 rounded-xl p-5 w-full max-w-sm border border-gray-700 space-y-3">
+      <h3 class="font-bold text-white">创建群聊</h3>
+      <input id="create-group-name" type="text" placeholder="群聊名称" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white outline-none">
+      <div class="flex justify-end space-x-2">
+        <button onclick="closeModal('create-group-modal')" class="px-3 py-1.5 text-xs text-gray-400">取消</button>
+        <button onclick="submitCreateGroup()" class="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded">创建</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- 弹窗：加入群聊 -->
+  <div id="join-group-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
+    <div class="bg-gray-800 rounded-xl p-5 w-full max-w-sm border border-gray-700 space-y-3">
+      <h3 class="font-bold text-white">加入群聊</h3>
+      <input id="join-group-code" type="text" placeholder="输入6位群聊邀请码" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-white outline-none">
+      <div class="flex justify-end space-x-2">
+        <button onclick="closeModal('join-group-modal')" class="px-3 py-1.5 text-xs text-gray-400">取消</button>
+        <button onclick="submitJoinGroup()" class="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded">加入</button>
+      </div>
+    </div>
+  </div>
 
-<script src="/app.js"></script>
+  <!-- 弹窗：管理员控制台 -->
+  <div id="admin-modal" class="fixed inset-0 z-40 bg-black/60 hidden items-center justify-center p-4">
+    <div class="bg-gray-800 rounded-xl p-5 w-full max-w-2xl border border-gray-700 space-y-4">
+      <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+        <h3 class="font-bold text-white">系统用户管理（后端验证权限）</h3>
+        <button onclick="closeModal('admin-modal')" class="text-gray-400 hover:text-white">✕</button>
+      </div>
+      <div class="max-h-80 overflow-y-auto">
+        <table class="w-full text-left text-sm text-gray-300">
+          <thead class="bg-gray-700/50 text-xs text-gray-400">
+            <tr>
+              <th class="p-2">用户</th>
+              <th class="p-2">身份</th>
+              <th class="p-2">状态</th>
+              <th class="p-2 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody id="admin-user-table" class="divide-y divide-gray-700">
+            <!-- 动态渲染管理员列表 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
+  <script>
+    let token = localStorage.getItem('token');
+    let currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    let isRegisterMode = false;
+    let socket = null;
+
+    let activeChannel = { type: 'public', id: 'public', name: '🌐 公共频道', code: '' };
+
+    function init() {
+      if (token && currentUser.id) {
+        document.getElementById('auth-modal').classList.add('hidden');
+        renderUserProfile();
+        connectSocket();
+        fetchInitialData();
+      } else {
+        document.getElementById('auth-modal').classList.remove('hidden');
+      }
+
+      // 回车监听
+      const input = document.getElementById('message-input');
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+    }
+
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      document.getElementById('auth-title').innerText = isRegisterMode ? '注册 IM 账号' : '登录 IM 聊天室';
+      document.getElementById('auth-submit-btn').innerText = isRegisterMode ? '注册并登录' : '登录';
+      document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? '已有账号？去登录' : '没有账号？去注册';
+    }
+
+    async function handleAuthSubmit() {
+      const username = document.getElementById('auth-username').value.trim();
+      const password = document.getElementById('auth-password').value.trim();
+      const errBox = document.getElementById('auth-error');
+      errBox.classList.add('hidden');
+
+      const endpoint = isRegisterMode ? '/api/register' : '/api/login';
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '操作失败');
+
+        token = data.token;
+        currentUser = data.user;
+        localStorage.setItem('token', token);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        document.getElementById('auth-modal').classList.add('hidden');
+        renderUserProfile();
+        connectSocket();
+        fetchInitialData();
+      } catch (err) {
+        errBox.innerText = err.message;
+        errBox.classList.remove('hidden');
+      }
+    }
+
+    function renderUserProfile() {
+      document.getElementById('my-avatar').src = currentUser.avatar;
+      document.getElementById('my-username').innerText = currentUser.username;
+      const roleBadge = document.getElementById('my-role');
+      roleBadge.innerText = currentUser.role === 'admin' ? '管理员' : '普通用户';
+      if (currentUser.role === 'admin') {
+        document.getElementById('admin-menu-section').classList.remove('hidden');
+      }
+    }
+
+    function connectSocket() {
+      socket = io({ auth: { token } });
+
+      socket.on('connect_error', (err) => {
+        alert('连接已断开: ' + err.message);
+        logout();
+      });
+
+      socket.on('new_message', (msg) => {
+        if (
+          (activeChannel.type === 'public' && msg.targetType === 'public') ||
+          (activeChannel.type === 'direct' && msg.targetType === 'direct' && (msg.senderId === activeChannel.id || msg.senderId === currentUser.id)) ||
+          (activeChannel.type === 'group' && msg.targetType === 'group' && msg.targetId === activeChannel.id)
+        ) {
+          appendMessageBubble(msg);
+        }
+      });
+
+      socket.on('friend_request_received', () => fetchInitialData());
+      socket.on('friend_request_updated', () => fetchInitialData());
+      socket.on('user_status_changed', (data) => {
+        if (data.userId === currentUser.id) {
+          if (data.isBanned) {
+            alert('您的账号已被管理员封禁！');
+            logout();
+          }
+        }
+      });
+      socket.on('error_message', (txt) => alert(txt));
+    }
+
+    async function fetchInitialData() {
+      const res = await fetch('/api/initial-data', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      
+      // 好友列表
+      const fContainer = document.getElementById('friends-list');
+      fContainer.innerHTML = '';
+      data.friends.forEach(f => {
+        const btn = document.createElement('button');
+        btn.className = "w-full flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-700 text-gray-300 truncate";
+        btn.innerHTML = `<img src="${f.avatar}" class="w-5 h-5 rounded-full"><span>${f.username}</span>`;
+        btn.onclick = () => switchChannel('direct', f.id, `💬 ${f.username}`);
+        fContainer.appendChild(btn);
+      });
+
+      // 好友申请
+      const pContainer = document.getElementById('pending-requests');
+      pContainer.innerHTML = '';
+      data.pendingRequests.forEach(req => {
+        const div = document.createElement('div');
+        div.className = "bg-gray-700/60 p-2 rounded text-xs flex items-center justify-between";
+        div.innerHTML = `
+          <span>${req.requester.username} 请求好友</span>
+          <div class="space-x-1">
+            <button onclick="respondFriend('${req.id}', true)" class="text-green-400 hover:underline">接受</button>
+            <button onclick="respondFriend('${req.id}', false)" class="text-red-400 hover:underline">拒绝</button>
+          </div>
+        `;
+        pContainer.appendChild(div);
+      });
+
+      // 群聊列表
+      const gContainer = document.getElementById('groups-list');
+      gContainer.innerHTML = '';
+      data.groups.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm hover:bg-gray-700 text-gray-300";
+        btn.innerHTML = `<span class="truncate"># ${g.name}</span><span class="text-[10px] text-gray-400 font-mono">${g.code}</span>`;
+        btn.onclick = () => {
+          socket.emit('join_group_room', g.id);
+          switchChannel('group', g.id, `👨‍👩‍👧 ${g.name}`, g.code);
+        };
+        gContainer.appendChild(btn);
+      });
+    }
+
+    function switchChannel(type, id, name, code = '') {
+      activeChannel = { type, id, name, code };
+      document.getElementById('current-chat-title').innerText = name;
+      const codeBox = document.getElementById('group-code-display');
+      if (type === 'group') {
+        codeBox.classList.remove('hidden');
+        document.getElementById('current-group-code').innerText = code;
+      } else {
+        codeBox.classList.add('hidden');
+      }
+      document.getElementById('messages-container').innerHTML = '';
+    }
+
+    function appendMessageBubble(msg) {
+      const isMe = msg.senderId === currentUser.id;
+      const box = document.getElementById('messages-container');
+      
+      const el = document.createElement('div');
+      el.className = `flex items-start space-x-2.5 ${isMe ? 'flex-row-reverse space-x-reverse' : ''} mb-4`;
+      
+      el.innerHTML = `
+        <img class="w-8 h-8 rounded-full bg-gray-700 flex-shrink-0" src="${msg.senderAvatar}" alt="">
+        <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[75%]">
+          <div class="flex items-center space-x-2 text-[11px] text-gray-400 mb-0.5">
+            <span class="font-medium">${msg.senderName}</span>
+            <span>${msg.createdAt}</span>
+          </div>
+          <div class="p-3 rounded-2xl text-sm leading-relaxed ${isMe ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-gray-800 text-gray-100 rounded-tl-none border border-gray-700'}">
+            ${parseMessageText(msg.content)}
+          </div>
+        </div>
+      `;
+      box.appendChild(el);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function parseMessageText(text) {
+      const parts = text.split(/(@\S+)/g);
+      return parts.map(part => {
+        if (part === '@地铁跑酷') {
+          return `<a href="https://subwaysurfers3dbyzjp.netlify.app/" target="_blank" rel="noreferrer" class="text-yellow-400 font-bold underline hover:text-yellow-300">@地铁跑酷</a>`;
+        }
+        if (part.startsWith('@')) {
+          const user = part.slice(1);
+          return `<span onclick="alert('查看用户: ${user}')" class="text-indigo-400 font-semibold cursor-pointer hover:underline">${part}</span>`;
+        }
+        return escapeHtml(part);
+      }).join('');
+    }
+
+    function escapeHtml(string) {
+      return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('message-input');
+      const content = input.value.trim();
+      if (!content || !socket) return;
+
+      socket.emit('send_message', {
+        targetType: activeChannel.type,
+        targetId: activeChannel.id,
+        content
+      });
+      input.value = '';
+    }
+
+    async function submitFriendRequest() {
+      const targetUsername = document.getElementById('add-friend-username').value.trim();
+      if (!targetUsername) return;
+      const res = await fetch('/api/friends/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ targetUsername })
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error);
+      else {
+        alert('申请已发送');
+        closeModal('add-friend-modal');
+      }
+    }
+
+    async function respondFriend(requestId, accept) {
+      await fetch('/api/friends/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ requestId, accept })
+      });
+      fetchInitialData();
+    }
+
+    async function submitCreateGroup() {
+      const name = document.getElementById('create-group-name').value.trim();
+      if (!name) return;
+      const res = await fetch('/api/groups/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name })
+      });
+      const group = await res.json();
+      closeModal('create-group-modal');
+      fetchInitialData();
+    }
+
+    async function submitJoinGroup() {
+      const code = document.getElementById('join-group-code').value.trim();
+      if (!code) return;
+      const res = await fetch('/api/groups/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ code })
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error);
+      else {
+        closeModal('join-group-modal');
+        fetchInitialData();
+      }
+    }
+
+    async function fetchAdminUsers() {
+      const res = await fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } });
+      const list = await res.json();
+      const tbody = document.getElementById('admin-user-table');
+      tbody.innerHTML = '';
+      list.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-700/30";
+        tr.innerHTML = `
+          <td class="p-2 font-medium">${u.username}</td>
+          <td class="p-2 text-xs">${u.role}</td>
+          <td class="p-2 text-xs">
+            ${u.isBanned ? '<span class="text-red-400">已封禁</span>' : '<span class="text-green-400">正常</span>'} / 
+            ${u.isMuted ? '<span class="text-orange-400">已禁言</span>' : '<span class="text-gray-400">未禁言</span>'}
+          </td>
+          <td class="p-2 text-right space-x-1">
+            <button onclick="toggleMute('${u.id}')" class="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded">${u.isMuted ? '解禁言' : '禁言'}</button>
+            ${u.role !== 'admin' ? `<button onclick="toggleBan('${u.id}')" class="text-xs px-2 py-1 ${u.isBanned ? 'bg-green-700' : 'bg-red-700'} rounded">${u.isBanned ? '解封' : '封禁'}</button>` : ''}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function toggleMute(targetUserId) {
+      await fetch('/api/admin/toggle-mute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ targetUserId })
+      });
+      fetchAdminUsers();
+    }
+
+    async function toggleBan(targetUserId) {
+      await fetch('/api/admin/toggle-ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ targetUserId })
+      });
+      fetchAdminUsers();
+    }
+
+    function copyGroupCode() {
+      navigator.clipboard.writeText(activeChannel.code);
+      alert('群聊码已复制到剪贴板: ' + activeChannel.code);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+
+    function logout() {
+      localStorage.clear();
+      window.location.reload();
+    }
+
+    window.onload = init;
+  </script>
 </body>
-
 </html>
