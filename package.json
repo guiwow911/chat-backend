@@ -1,13 +1,14 @@
 {
   "name": "jiliao-chat",
   "version": "3.0.0",
-  "private": true,
+  "description": "简洁匿名聊天网站",
   "type": "module",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=20"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
