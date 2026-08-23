@@ -11,13 +11,13 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { 
   cors: { origin: '*' },
-  maxHttpBufferSize: 1e8 // 支持最大 100MB 数据传输（适配高清图片上传）
+  maxHttpBufferSize: 1e8 // 支持大图传输
 });
 
 const JWT_SECRET = 'your_super_secret_jwt_key_2026';
 const DB_FILE = path.join(__dirname, 'data.json');
 
-// --- 数据持久化层 ---
+// --- 数据持久化与异步非阻塞写入 ---
 let db = {
   users: [],
   friendships: [],
@@ -31,10 +31,9 @@ function loadDatabase() {
       const raw = fs.readFileSync(DB_FILE, 'utf8');
       db = JSON.parse(raw);
     } catch (e) {
-      console.error('读取数据库文件失败，重置为空结构', e);
+      console.error('读取数据库文件失败，重置结构', e);
     }
   }
-  // 如果没有管理员，初始化一个默认管理员 (admin / admin123)
   if (!db.users.find(u => u.username === 'admin')) {
     const hash = bcrypt.hashSync('admin123', 10);
     db.users.push({
@@ -46,21 +45,30 @@ function loadDatabase() {
       isBanned: false,
       isMuted: false
     });
-    saveDatabase();
+    saveDatabaseImmediately();
   }
 }
 
+let saveTimer = null;
 function saveDatabase() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    fs.writeFile(DB_FILE, JSON.stringify(db, null, 2), 'utf8', (err) => {
+      if (err) console.error('异步落盘失败', err);
+    });
+  }, 100);
+}
+
+function saveDatabaseImmediately() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
   } catch (e) {
-    console.error('保存数据库失败', e);
+    console.error('同步保存失败', e);
   }
 }
 
 loadDatabase();
 
-// 调大请求体积以接收 base64 图片
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
@@ -89,7 +97,7 @@ function adminMiddleware(req, res, next) {
   next();
 }
 
-// --- 身份与用户路由 ---
+// --- 身份路由 ---
 app.post('/api/register', async (req, res) => {
   const { username, password, avatar } = req.body;
   if (!username || !password) return res.status(400).json({ error: '用户名和密码不能为空' });
@@ -108,7 +116,7 @@ app.post('/api/register', async (req, res) => {
     isMuted: false
   };
   db.users.push(newUser);
-  saveDatabase();
+  saveDatabaseImmediately();
 
   const token = jwt.sign({ id: newUser.id, username: newUser.username, role: newUser.role }, JWT_SECRET);
   res.json({ token, user: { id: newUser.id, username: newUser.username, avatar: newUser.avatar, role: newUser.role } });
@@ -127,7 +135,6 @@ app.post('/api/login', async (req, res) => {
   res.json({ token, user: { id: user.id, username: user.username, avatar: user.avatar, role: user.role, isMuted: user.isMuted } });
 });
 
-// 自定义更新头像
 app.post('/api/user/avatar', authMiddleware, (req, res) => {
   const { avatar } = req.body;
   if (!avatar) return res.status(400).json({ error: '头像数据不能为空' });
@@ -163,7 +170,7 @@ app.post('/api/admin/toggle-ban', authMiddleware, adminMiddleware, (req, res) =>
   res.json({ success: true, isBanned: target.isBanned });
 });
 
-// --- 历史消息接口（解决刷新丢失问题） ---
+// --- 消息与好友系统 ---
 app.get('/api/messages', authMiddleware, (req, res) => {
   const { type, id } = req.query;
   let history = [];
@@ -179,10 +186,9 @@ app.get('/api/messages', authMiddleware, (req, res) => {
     history = db.messages.filter(m => m.targetType === 'group' && m.targetId === id);
   }
 
-  res.json(history.slice(-100)); // 返回最近 100 条
+  res.json(history.slice(-100));
 });
 
-// --- 好友与群聊接口 ---
 app.post('/api/friends/request', authMiddleware, (req, res) => {
   const { targetUsername } = req.body;
   const target = db.users.find(u => u.username === targetUsername);
@@ -259,7 +265,7 @@ app.post('/api/groups/join', authMiddleware, (req, res) => {
   res.json(group);
 });
 
-// --- WebSocket 实时通信 ---
+// --- WebSocket 实时路由（低延迟广播） ---
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error('Authentication error'));
@@ -279,7 +285,6 @@ io.on('connection', (socket) => {
   socket.join(`user_${currentUser.id}`);
   socket.join('room:public');
 
-  // 加入所有已属于的群房间
   db.groups.filter(g => g.members.includes(currentUser.id)).forEach(g => {
     socket.join(`room:group_${g.id}`);
   });
@@ -297,34 +302,36 @@ io.on('connection', (socket) => {
       return socket.emit('error_message', '您当前已被禁言');
     }
 
-    const { targetType, targetId, content, messageType = 'text' } = data;
+    const { targetType, targetId, content, messageType = 'text', tempId } = data;
     if (!content || !content.trim()) return;
 
     const newMsg = {
       id: 'msg_' + Date.now() + Math.random().toString(36).substr(2, 4),
+      tempId,
       senderId: sender.id,
       senderName: sender.username,
       senderAvatar: sender.avatar,
       targetType,
       targetId,
-      messageType, // 'text' | 'image'
+      messageType,
       content,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
+    // 优先广播，保证其他客户端毫秒级接收
+    if (targetType === 'public') {
+      socket.broadcast.to('room:public').emit('new_message', newMsg);
+    } else if (targetType === 'direct') {
+      socket.to(`user_${targetId}`).emit('new_message', newMsg);
+    } else if (targetType === 'group') {
+      socket.broadcast.to(`room:group_${targetId}`).emit('new_message', newMsg);
+    }
+
+    // 异步非阻塞落盘
     db.messages.push(newMsg);
     saveDatabase();
-
-    if (targetType === 'public') {
-      io.to('room:public').emit('new_message', newMsg);
-    } else if (targetType === 'direct') {
-      io.to(`user_${targetId}`).emit('new_message', newMsg);
-      socket.emit('new_message', newMsg);
-    } else if (targetType === 'group') {
-      io.to(`room:group_${targetId}`).emit('new_message', newMsg);
-    }
   });
 });
 
 const PORT = 3000;
-server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
