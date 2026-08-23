@@ -1,20 +1,15 @@
 {
-  "name": "jiliao-chat",
-  "version": "3.0.0",
-  "description": "简洁匿名聊天网站",
-  "type": "module",
+  "name": "simple-im-app",
+  "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "engines": {
-    "node": ">=20"
-  },
   "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "express": "^5.1.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.16.3",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.7.5"
   }
 }
