@@ -5,36 +5,66 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, { 
+  cors: { origin: '*' },
+  maxHttpBufferSize: 1e8 // 支持最大 100MB 数据传输（适配高清图片上传）
+});
 
 const JWT_SECRET = 'your_super_secret_jwt_key_2026';
+const DB_FILE = path.join(__dirname, 'data.json');
 
+// --- 数据持久化层 ---
+let db = {
+  users: [],
+  friendships: [],
+  groups: [],
+  messages: []
+};
+
+function loadDatabase() {
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const raw = fs.readFileSync(DB_FILE, 'utf8');
+      db = JSON.parse(raw);
+    } catch (e) {
+      console.error('读取数据库文件失败，重置为空结构', e);
+    }
+  }
+  // 如果没有管理员，初始化一个默认管理员 (admin / admin123)
+  if (!db.users.find(u => u.username === 'admin')) {
+    const hash = bcrypt.hashSync('admin123', 10);
+    db.users.push({
+      id: 'admin_1',
+      username: 'admin',
+      passwordHash: hash,
+      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=admin',
+      role: 'admin',
+      isBanned: false,
+      isMuted: false
+    });
+    saveDatabase();
+  }
+}
+
+function saveDatabase() {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+  } catch (e) {
+    console.error('保存数据库失败', e);
+  }
+}
+
+loadDatabase();
+
+// 调大请求体积以接收 base64 图片
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
-app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
-// --- 内存数据存储 ---
-const users = []; // { id, username, passwordHash, avatar, role: 'admin'|'user', isBanned: false, isMuted: false }
-const friendships = []; // { id, requesterId, receiverId, status: 'pending'|'accepted' }
-const groups = []; // { id, name, code, ownerId, members: [userId] }
-const messages = []; // { id, senderId, senderName, senderAvatar, targetType: 'public'|'direct'|'group', targetId, content, createdAt }
-
-// 默认初始化一个管理员账号 (admin / admin123)
-(async () => {
-  const hash = await bcrypt.hash('admin123', 10);
-  users.push({
-    id: 'admin_1',
-    username: 'admin',
-    passwordHash: hash,
-    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=admin',
-    role: 'admin',
-    isBanned: false,
-    isMuted: false
-  });
-})();
 
 // --- 鉴权中间件 ---
 function authMiddleware(req, res, next) {
@@ -42,7 +72,7 @@ function authMiddleware(req, res, next) {
   if (!token) return res.status(401).json({ error: '未提供认证 Token' });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = users.find(u => u.id === decoded.id);
+    const user = db.users.find(u => u.id === decoded.id);
     if (!user) return res.status(401).json({ error: '用户不存在' });
     if (user.isBanned) return res.status(403).json({ error: '账号已被封禁' });
     req.user = user;
@@ -61,30 +91,34 @@ function adminMiddleware(req, res, next) {
 
 // --- 身份与用户路由 ---
 app.post('/api/register', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, avatar } = req.body;
   if (!username || !password) return res.status(400).json({ error: '用户名和密码不能为空' });
-  if (users.find(u => u.username === username)) return res.status(400).json({ error: '用户名已存在' });
+  if (db.users.find(u => u.username === username)) return res.status(400).json({ error: '用户名已存在' });
 
   const passwordHash = await bcrypt.hash(password, 10);
+  const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(username)}`;
+  
   const newUser = {
     id: 'u_' + Date.now() + Math.random().toString(36).substr(2, 4),
     username,
     passwordHash,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
-    role: users.length === 0 ? 'admin' : 'user',
+    avatar: avatar || defaultAvatar,
+    role: db.users.length === 0 ? 'admin' : 'user',
     isBanned: false,
     isMuted: false
   };
-  users.push(newUser);
+  db.users.push(newUser);
+  saveDatabase();
+
   const token = jwt.sign({ id: newUser.id, username: newUser.username, role: newUser.role }, JWT_SECRET);
   res.json({ token, user: { id: newUser.id, username: newUser.username, avatar: newUser.avatar, role: newUser.role } });
 });
 
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find(u => u.username === username);
+  const user = db.users.find(u => u.username === username);
   if (!user) return res.status(400).json({ error: '用户不存在或密码错误' });
-  if (user.isBanned) return res.status(403).json({ error: '该账号已被管理员封禁' });
+  if (user.isBanned) return res.status(403).json({ error: '该账号已被封禁' });
 
   const match = await bcrypt.compare(password, user.passwordHash);
   if (!match) return res.status(400).json({ error: '用户不存在或密码错误' });
@@ -93,74 +127,108 @@ app.post('/api/login', async (req, res) => {
   res.json({ token, user: { id: user.id, username: user.username, avatar: user.avatar, role: user.role, isMuted: user.isMuted } });
 });
 
+// 自定义更新头像
+app.post('/api/user/avatar', authMiddleware, (req, res) => {
+  const { avatar } = req.body;
+  if (!avatar) return res.status(400).json({ error: '头像数据不能为空' });
+  req.user.avatar = avatar;
+  saveDatabase();
+  res.json({ success: true, avatar });
+});
+
 // --- 管理员操作接口 ---
 app.get('/api/admin/users', authMiddleware, adminMiddleware, (req, res) => {
-  const sanitized = users.map(u => ({ id: u.id, username: u.username, role: u.role, isBanned: u.isBanned, isMuted: u.isMuted }));
+  const sanitized = db.users.map(u => ({ id: u.id, username: u.username, role: u.role, isBanned: u.isBanned, isMuted: u.isMuted }));
   res.json(sanitized);
 });
 
 app.post('/api/admin/toggle-mute', authMiddleware, adminMiddleware, (req, res) => {
   const { targetUserId } = req.body;
-  const target = users.find(u => u.id === targetUserId);
+  const target = db.users.find(u => u.id === targetUserId);
   if (!target) return res.status(404).json({ error: '目标用户不存在' });
   target.isMuted = !target.isMuted;
+  saveDatabase();
   io.emit('user_status_changed', { userId: target.id, isMuted: target.isMuted, isBanned: target.isBanned });
   res.json({ success: true, isMuted: target.isMuted });
 });
 
 app.post('/api/admin/toggle-ban', authMiddleware, adminMiddleware, (req, res) => {
   const { targetUserId } = req.body;
-  const target = users.find(u => u.id === targetUserId);
+  const target = db.users.find(u => u.id === targetUserId);
   if (!target) return res.status(404).json({ error: '目标用户不存在' });
   if (target.role === 'admin') return res.status(400).json({ error: '不能封禁管理员' });
   target.isBanned = !target.isBanned;
+  saveDatabase();
   io.emit('user_status_changed', { userId: target.id, isMuted: target.isMuted, isBanned: target.isBanned });
   res.json({ success: true, isBanned: target.isBanned });
+});
+
+// --- 历史消息接口（解决刷新丢失问题） ---
+app.get('/api/messages', authMiddleware, (req, res) => {
+  const { type, id } = req.query;
+  let history = [];
+
+  if (type === 'public') {
+    history = db.messages.filter(m => m.targetType === 'public');
+  } else if (type === 'direct') {
+    history = db.messages.filter(m => 
+      m.targetType === 'direct' && 
+      ((m.senderId === req.user.id && m.targetId === id) || (m.senderId === id && m.targetId === req.user.id))
+    );
+  } else if (type === 'group') {
+    history = db.messages.filter(m => m.targetType === 'group' && m.targetId === id);
+  }
+
+  res.json(history.slice(-100)); // 返回最近 100 条
 });
 
 // --- 好友与群聊接口 ---
 app.post('/api/friends/request', authMiddleware, (req, res) => {
   const { targetUsername } = req.body;
-  const target = users.find(u => u.username === targetUsername);
+  const target = db.users.find(u => u.username === targetUsername);
   if (!target) return res.status(404).json({ error: '未找到该用户' });
   if (target.id === req.user.id) return res.status(400).json({ error: '不能添加自己为好友' });
 
-  const exists = friendships.find(f => 
+  const exists = db.friendships.find(f => 
     (f.requesterId === req.user.id && f.receiverId === target.id) ||
     (f.requesterId === target.id && f.receiverId === req.user.id)
   );
   if (exists) return res.status(400).json({ error: '好友关系已存在或正在申请中' });
 
   const request = { id: 'fr_' + Date.now(), requesterId: req.user.id, receiverId: target.id, status: 'pending' };
-  friendships.push(request);
+  db.friendships.push(request);
+  saveDatabase();
+
   io.to(`user_${target.id}`).emit('friend_request_received', { request, fromUser: req.user });
   res.json({ success: true, request });
 });
 
 app.post('/api/friends/respond', authMiddleware, (req, res) => {
   const { requestId, accept } = req.body;
-  const reqItem = friendships.find(f => f.id === requestId && f.receiverId === req.user.id);
+  const reqItem = db.friendships.find(f => f.id === requestId && f.receiverId === req.user.id);
   if (!reqItem) return res.status(404).json({ error: '申请不存在' });
 
   reqItem.status = accept ? 'accepted' : 'rejected';
+  saveDatabase();
+
   io.to(`user_${reqItem.requesterId}`).emit('friend_request_updated', reqItem);
   io.to(`user_${reqItem.receiverId}`).emit('friend_request_updated', reqItem);
   res.json({ success: true });
 });
 
 app.get('/api/initial-data', authMiddleware, (req, res) => {
-  const myFriends = friendships
+  const myFriends = db.friendships
     .filter(f => (f.requesterId === req.user.id || f.receiverId === req.user.id) && f.status === 'accepted')
     .map(f => {
       const friendId = f.requesterId === req.user.id ? f.receiverId : f.requesterId;
-      return users.find(u => u.id === friendId);
+      return db.users.find(u => u.id === friendId);
     }).filter(Boolean);
 
-  const pendingRequests = friendships
+  const pendingRequests = db.friendships
     .filter(f => f.receiverId === req.user.id && f.status === 'pending')
-    .map(f => ({ ...f, requester: users.find(u => u.id === f.requesterId) }));
+    .map(f => ({ ...f, requester: db.users.find(u => u.id === f.requesterId) }));
 
-  const myGroups = groups.filter(g => g.members.includes(req.user.id));
+  const myGroups = db.groups.filter(g => g.members.includes(req.user.id));
   res.json({ friends: myFriends, pendingRequests, groups: myGroups });
 });
 
@@ -175,27 +243,29 @@ app.post('/api/groups/create', authMiddleware, (req, res) => {
     ownerId: req.user.id,
     members: [req.user.id]
   };
-  groups.push(group);
+  db.groups.push(group);
+  saveDatabase();
   res.json(group);
 });
 
 app.post('/api/groups/join', authMiddleware, (req, res) => {
   const { code } = req.body;
-  const group = groups.find(g => g.code === code.toUpperCase());
+  const group = db.groups.find(g => g.code === code.toUpperCase());
   if (!group) return res.status(404).json({ error: '群聊邀请码无效' });
   if (!group.members.includes(req.user.id)) {
     group.members.push(req.user.id);
+    saveDatabase();
   }
   res.json(group);
 });
 
-// --- WebSocket 实时通信与房间管理 ---
+// --- WebSocket 实时通信 ---
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error('Authentication error'));
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = users.find(u => u.id === decoded.id);
+    const user = db.users.find(u => u.id === decoded.id);
     if (!user || user.isBanned) return next(new Error('User unauthorized or banned'));
     socket.user = user;
     next();
@@ -209,12 +279,17 @@ io.on('connection', (socket) => {
   socket.join(`user_${currentUser.id}`);
   socket.join('room:public');
 
+  // 加入所有已属于的群房间
+  db.groups.filter(g => g.members.includes(currentUser.id)).forEach(g => {
+    socket.join(`room:group_${g.id}`);
+  });
+
   socket.on('join_group_room', (groupId) => {
     socket.join(`room:group_${groupId}`);
   });
 
   socket.on('send_message', (data) => {
-    const sender = users.find(u => u.id === currentUser.id);
+    const sender = db.users.find(u => u.id === currentUser.id);
     if (!sender || sender.isBanned) {
       return socket.emit('error_message', '您已被封禁，无法发送消息');
     }
@@ -222,20 +297,23 @@ io.on('connection', (socket) => {
       return socket.emit('error_message', '您当前已被禁言');
     }
 
-    const { targetType, targetId, content } = data;
+    const { targetType, targetId, content, messageType = 'text' } = data;
     if (!content || !content.trim()) return;
 
     const newMsg = {
-      id: 'msg_' + Date.now(),
+      id: 'msg_' + Date.now() + Math.random().toString(36).substr(2, 4),
       senderId: sender.id,
       senderName: sender.username,
       senderAvatar: sender.avatar,
       targetType,
       targetId,
+      messageType, // 'text' | 'image'
       content,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    messages.push(newMsg);
+
+    db.messages.push(newMsg);
+    saveDatabase();
 
     if (targetType === 'public') {
       io.to('room:public').emit('new_message', newMsg);
@@ -249,4 +327,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = 3000;
-server.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
