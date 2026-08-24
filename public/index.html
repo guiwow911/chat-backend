@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IM 极速聊天室</title>
+  <title>IM 聊天室</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
   <style>
@@ -344,9 +344,8 @@
         logout();
       });
 
-      // 接收其他人的实时消息
       socket.on('new_message', (msg) => {
-        if (msg.senderId === currentUser.id) return; // 已经乐观更新，跳过
+        if (msg.senderId === currentUser.id) return;
 
         if (
           (activeChannel.type === 'public' && msg.targetType === 'public') ||
@@ -485,7 +484,6 @@
       return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    // 核心优化 1：乐观发送，0ms 本地上屏
     function sendTextMessage() {
       const input = document.getElementById('message-input');
       const content = input.value.trim();
@@ -513,7 +511,6 @@
       });
     }
 
-    // 核心优化 2：图片前端压缩至 800px / 0.7 质量再发送
     function handleSendImage(e) {
       compressImageFile(e.target.files[0], 800, (compressedBase64) => {
         const tempMsg = {
